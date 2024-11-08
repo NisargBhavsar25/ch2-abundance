@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 
-def get_abundance(tiff_path, lat, lon):
-    image = Image.open(tiff_path)
+def get_abundance(tif_path, lat, lon):
+    image = Image.open(tif_path)
 
     # Extract image data
     image_data = np.array(image)
