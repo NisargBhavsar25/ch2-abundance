@@ -200,7 +200,7 @@ def objective(trial):
 study = optuna.create_study(direction="minimize", sampler=optuna.samplers.NSGAIIISampler())
 # study.enqueue_trial({"weight_Fe": 5, "weight_Ti": 1, "weight_Ca": 9, "weight_Si": 21, "weight_Al": 14, "weight_Mg": 5, "weight_Na": 0.5, "weight_O": 45})
 # Run the optimization
-study.optimize(objective, n_trials=300)
+study.optimize(objective, n_trials=50)
 
 # Get the best parameters
 best_params = study.best_params
