@@ -1,8 +1,12 @@
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 from scipy.spatial import ConvexHull
 from skimage.draw import polygon
 
 class GaussianArray:
-    def __init__(self, grid_size=64):
+    def __init__(self, grid_size=32):
         self.arr = np.zeros((grid_size, grid_size, 2))
         self.grid_size = grid_size
 
@@ -25,7 +29,6 @@ class GaussianArray:
         return lat_indices, lon_indices
 
     def calculate_diagonal_length(self, lat_indices, lon_indices):
-        # Calculate the lengths of the two diagonals
         diag1 = np.sqrt((lat_indices[2] - lat_indices[0]) ** 2 + (lon_indices[2] - lon_indices[0]) ** 2)
         diag2 = np.sqrt((lat_indices[3] - lat_indices[1]) ** 2 + (lon_indices[3] - lon_indices[1]) ** 2)
         return (diag1 + diag2) / 2
@@ -44,7 +47,6 @@ class GaussianArray:
             min_y, min_x = np.min(poly_points, axis=0)
             max_y, max_x = np.max(poly_points, axis=0)
 
-            # Calculate average diagonal length and scale sigma
             avg_diagonal = self.calculate_diagonal_length(img_lat_indices, img_lon_indices)
             scale_factor = target_diagonal / avg_diagonal
             sigma = base_value * scale_factor
@@ -85,5 +87,4 @@ gaussian_array.add_gaussian_box([-20, 20, 25, -30], [-20, -10, 30, 25], [-100, 1
 gaussian_array.add_gaussian_box([-20, 20, 25, -30], [-20, -10, 30, 25], [-100, 100, 90, -100], [-100, -80, 70, 100], 4.5, plot=True)
 gaussian_array.add_gaussian_box([40, 60, 40, 0], [40, 40, 40, 80], [-100, 70, 70, -100], [-100, -100, 90, 80], 4, plot=True)
 gaussian_array.add_gaussian_box([-10, 40, 30, -10], [-25, -10, 30, 30], [-100, 100, 140, -100], [-100, -120, 100, 100], 5.5, plot=True)
-gaussian_array.add_gaussian_box([10, 50, 60, 10], [10, 10, 50, 80], [-100, 100, 70, -100], [-100, -100, 100, 90], 6, plot=True)
 gaussian_array.add_gaussian_box([-30, 10, 30, -30], [-30, -40, 10, 10], [-100, 80, 80, -100], [-100, -60, 100, 100], 5.5, plot=True)
