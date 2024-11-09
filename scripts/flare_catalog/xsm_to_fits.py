@@ -1,1 +1,0 @@
-# classifies the fits files to class A,B,C Flares
