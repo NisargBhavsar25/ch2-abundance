@@ -81,7 +81,26 @@ def objective(trial):
     # Set other elements to 100-weiht/7
     other_w = (100 - weight_fe)/7
     # weight = [weight_fe, other_w, other_w, other_w, other_w, other_w, other_w, other_w]
-    weight = [weight_fe, other_w, other_w, other_w, other_w, other_w, other_w, other_w]
+    # weight = [weight_fe, other_w, other_w, other_w, other_w, other_w, other_w, other_w]
+    step = 0.1
+    weight_fe = trial.suggest_float("weight_fe", 3, 7, step=step)
+    weight_ti = trial.suggest_float("weight_ti", 0, 0.3, step=step)
+    weight_ca = trial.suggest_float("weight_ca", 8, 12, step=step)
+    weight_si = trial.suggest_float("weight_si", 18, 22, step=step)
+    weight_al = trial.suggest_float("weight_al", 13, 15, step=step)
+    weight_mg = trial.suggest_float("weight_mg", 3, 9, step=step)
+    weight_na = trial.suggest_float("weight_na", 0, 1, step=step)
+    # weight_fe = trial.suggest_float("weight_fe", 0, 100, step=step)
+    # weight_ti = trial.suggest_float("weight_ti", 0, 100, step=step)
+    # weight_ca = trial.suggest_float("weight_ca", 0, 100, step=step)
+    # weight_si = trial.suggest_float("weight_si", 0, 100, step=step)
+    # weight_al = trial.suggest_float("weight_al", 0, 100, step=step)
+    # weight_mg = trial.suggest_float("weight_mg", 0, 100, step=step)
+    # weight_na = trial.suggest_float("weight_na", 0, 100, step=step)
+    weight_o = max(0,100 - weight_fe - weight_ti - weight_ca - weight_si - weight_al - weight_mg - weight_na)
+    # weight_o = trial.suggest_float("weight_o", -2, 2, step=0.1)
+    
+    weight = [weight_fe, weight_ti, weight_ca, weight_si, weight_al, weight_mg, weight_na, weight_o]
     
     flux = phy_model(energy, weight, original_intensities)
     flux[flux<1e-5] = 0
