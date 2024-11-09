@@ -72,6 +72,7 @@ def get_abundance(lat, lon):
                 decoded_value *= 25
             elif (element == 'si'):
                 decoded_value *=30
+            #for sodium(na) scaling value nahi mila
             else:
                 decoded_value *=12
                 
