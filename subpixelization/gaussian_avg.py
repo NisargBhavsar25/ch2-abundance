@@ -6,7 +6,7 @@ from scipy.spatial import ConvexHull
 from skimage.draw import polygon
 
 class GaussianArray:
-    def __init__(self, grid_size=32):
+    def __init__(self, grid_size=64):
         self.arr = np.zeros((grid_size, grid_size, 2))
         self.grid_size = grid_size
 
@@ -85,6 +85,5 @@ class GaussianArray:
 gaussian_array = GaussianArray()
 gaussian_array.add_gaussian_box([-20, 20, 25, -30], [-20, -10, 30, 25], [-100, 100, 100, -100], [-100, -100, 100, 100], 5, plot=True)
 gaussian_array.add_gaussian_box([-20, 20, 25, -30], [-20, -10, 30, 25], [-100, 100, 90, -100], [-100, -80, 70, 100], 4.5, plot=True)
-gaussian_array.add_gaussian_box([40, 60, 40, 0], [40, 40, 40, 80], [-100, 70, 70, -100], [-100, -100, 90, 80], 4, plot=True)
 gaussian_array.add_gaussian_box([-10, 40, 30, -10], [-25, -10, 30, 30], [-100, 100, 140, -100], [-100, -120, 100, 100], 5.5, plot=True)
 gaussian_array.add_gaussian_box([-30, 10, 30, -30], [-30, -40, 10, 10], [-100, 80, 80, -100], [-100, -60, 100, 100], 5.5, plot=True)
