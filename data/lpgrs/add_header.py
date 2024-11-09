@@ -21,4 +21,4 @@ df = pd.read_csv('output_file.csv', header=None)
 df.columns = column_names
 
 # Save the updated dataframe to a new CSV file
-df.to_csv('lpgrs_high1_elem_abundance_20deg.csv', index=False) #change this
+df.to_csv('lpgrs_high1_elem_abundance_5deg.csv', index=False) #change this

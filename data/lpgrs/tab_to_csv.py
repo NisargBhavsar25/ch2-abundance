@@ -1,7 +1,7 @@
 import csv
 
 # Specify the input and output file paths
-input_file = 'lpgrs_high1_elem_abundance_20deg.tab' #change this
+input_file = 'lpgrs_high1_elem_abundance_5deg.tab' #change this
 output_file = 'output_file.csv'
 
 with open(input_file, 'r') as infile:
