@@ -1,4 +1,5 @@
 #Gaussian Documentation
+
 The purpose of this implementation is to simulate spatial elemental abundances on a grid using Gaussian-distributed values within defined geographic boundaries. This model is particularly suited for applications in planetary surface mapping, geochemical studies, and environmental monitoring where it is essential to interpolate sparse data points across a defined region. The Gaussian-based interpolation technique herein provides smooth transitions across regions, allowing for a more accurate portrayal of elemental distributions as seen in natural settings, such as lunar surface.
 It is well suited for reconstructing abundance maps fromelemental fluorescence data, such as those collected by X-rayspectrometry instruments like the Chandrayaan-2 CLASS. Suchspectrometers obtain X-ray fluorescence data from a specificarea at once(12.5km x 12.5km for CLASS),  representingconcentrations of elements like oxygen, magnesium, aluminum,and silicon.
 ---
