@@ -6,9 +6,9 @@ from scipy.spatial import ConvexHull
 from skimage.draw import polygon
 
 class GaussianArray:
-    def __init__(self, grid_size=64):
+    def __init__(self, grid_size=(64, 64)):
         self.grid_size = grid_size
-        self.arr = np.zeros((grid_size, grid_size, 2))  # Initialize array based on grid_size
+        self.arr = np.zeros((grid_size[0], grid_size[1], 2))  # Initialize array based on grid_size
 
     def in_block_or_not(self, img_lat, img_lon, block_lat, block_lon):
         return (block_lat[0] <= min(img_lat) <= block_lat[2] and
@@ -17,8 +17,8 @@ class GaussianArray:
                 block_lon[0] <= max(img_lon) <= block_lon[2])
 
     def convert_coords_to_indices(self, lat, lon, block_lat, block_lon):
-        lat_scale = (self.grid_size - 1) / (block_lat[2] - block_lat[0])
-        lon_scale = (self.grid_size - 1) / (block_lon[2] - block_lon[0])
+        lat_scale = (self.grid_size[0] - 1) / (block_lat[2] - block_lat[0])
+        lon_scale = (self.grid_size[1] - 1) / (block_lon[2] - block_lon[0])
 
         lat_indices = [(lat[i] - block_lat[0]) * lat_scale for i in range(4)]
         lon_indices = [(lon[i] - block_lon[0]) * lon_scale for i in range(4)]
@@ -82,7 +82,7 @@ class GaussianArray:
         plt.show()
 
 # Example usage
-gaussian_array = GaussianArray(grid_size=32)
+gaussian_array = GaussianArray(grid_size=(32,32))
 gaussian_array.add_gaussian_box([-20, 20, 25, -30], [-20, -10, 30, 25], [-100, 100, 100, -100], [-100, -100, 100, 100], 5, plot=True)
 gaussian_array.add_gaussian_box([-20, 20, 25, -30], [-20, -10, 30, 25], [-100, 100, 90, -100], [-100, -80, 70, 100], 4.5, plot=True)
 gaussian_array.add_gaussian_box([-10, 40, 30, -10], [-25, -10, 30, 30], [-100, 100, 140, -100], [-100, -120, 100, 100], 5.5, plot=True)
