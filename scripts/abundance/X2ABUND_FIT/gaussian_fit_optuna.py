@@ -45,21 +45,27 @@ emiss_angle = float(finfo_split[2])
 altitude = float(finfo_split[3])
 exposure = float(finfo_split[4])
 
-elements=["fe","ti","ca","si","al","mg","na","o"]
-element_range={"fe":(3,7),"ti":(0,0.3),"ca":(8,12),"si":(13,15),"mg":(3,9),"na":(0,1)}
+elements=["fe", "ca", "si", "al", "mg", "na", "o"]
+# elements=["fe","ti","ca","si","al","mg","na","o"]
+element_range={"fe":(3,12),"ti":(0,0.3),"ca":(8,12),"si":(19,22),"mg":(4,6),"na":(0,20),"al":(5,20),"o":(0,40)}
+# element_range={"fe":(0,50),"ti":(0,0.3),"ca":(0,50),"si":(0,50),"mg":(0,50),"na":(0,50),"al":(0,50)}
 
 elem_bins={key:[] for key in elements}
 # Defining the model function
+centers=[]
+bin_size=1
 def phy_model(energy, parameters, original_intensities):
+    global centers,bin_size
     flux = np.zeros(np.size(energy) -1)
     # print(len(energy),energy[0],energy[1])
     # Defining proper energy axis    
     energy_mid = np.zeros(np.size(energy)-1)
     for i in np.arange(np.size(energy)-1):
         energy_mid[i] = 0.5*(energy[i+1] + energy[i])
-        
+    centers=energy_mid
     # Defining some input parameters required for x2abund xrf computation modules
-    at_no = np.array([26,22,20,14,13,12,11,8])
+    at_no = np.array([26,20,14,13,12,11,8])
+    # [26,22,20,14,13,12,11,8]
     
     weight = list(parameters)
     i_angle = 90.0 - solar_zenith_angle
@@ -89,13 +95,16 @@ def phy_model(energy, parameters, original_intensities):
             line_energy = xrf_lines.lineenergy[i,j]
             bin_index = np.where((ebin_left <= line_energy) & (ebin_right >= line_energy))
             spectrum_xrf[bin_index] = spectrum_xrf[bin_index] + xrf_struc.total_xrf[i,j]
-            elem_bins[elements[i]].append(bin_index[0])
+            if(xrf_struc.total_xrf[i,j]!=0):
+                elem_bins[elements[i]].append(bin_index[0])
+                
             # print(bin_index)
             # if bin_index[0] < 30:
             #     print(i, bin_index)
     
     # Defining the flux array required for XSPEC
     scaling_factor = (12.5*1e4*12.5*(round(exposure/8.0)+1)*1e4)/(exposure*4*np.pi*(altitude*1e4)**2)
+    # scaling_factor=1
     spectrum_xrf_scaled = scaling_factor*spectrum_xrf
     
     for i in range(0, n_ebins):
@@ -141,12 +150,12 @@ print(energy)
 def objective(trial):
     # weight = [trial.suggest_float(f"weight_{i}", -3, 3, step=0.1) for i in range(8)]
     step = 0.2
-    weight_fe = trial.suggest_float("weight_fe", 3, 7, step=step)
+    weight_fe = trial.suggest_float("weight_fe", 0, 7, step=step)
     weight_ti = trial.suggest_float("weight_ti", 0, 0.3, step=step)
-    weight_ca = trial.suggest_float("weight_ca", 8, 12, step=step)
-    weight_si = trial.suggest_float("weight_si", 18, 22, step=step)
-    weight_al = trial.suggest_float("weight_al", 13, 15, step=step)
-    weight_mg = trial.suggest_float("weight_mg", 3, 9, step=step)
+    weight_ca = trial.suggest_float("weight_ca", 4, 12, step=step)
+    weight_si = trial.suggest_float("weight_si", 10, 22, step=step)
+    weight_al = trial.suggest_float("weight_al", 8, 15, step=step)
+    weight_mg = trial.suggest_float("weight_mg", 0, 9, step=step)
     weight_na = trial.suggest_float("weight_na", 0, 1, step=step)
     # weight_fe = trial.suggest_float("weight_fe", 0, 100, step=step)
     # weight_ti = trial.suggest_float("weight_ti", 0, 100, step=step)
@@ -202,28 +211,71 @@ def objective(trial):
 
 # study = optuna.create_study(direction="minimize", sampler=optuna.samplers.NSGAIIISampler())
 
-studies = {el:optuna.create_study(direction="minimize", sampler=optuna.samplers.NSGAIIISampler()) for el in elements if el!="o"}
+studies = {el:optuna.create_study(direction="minimize", sampler=optuna.samplers.CmaEsSampler()) for el in elements if el!="o"}
 # study.enqueue_trial({"weight_Fe": 5, "weight_Ti": 1, "weight_Ca": 9, "weight_Si": 21, "weight_Al": 14, "weight_Mg": 5, "weight_Na": 0.5, "weight_O": 45})
 # Run the optimization
 # study.optimize(objective, n_trials=50)
 # Customize the optimization loop
 n_trials = 50  # Define the number of trials
 weights={}
-for _ in range(n_trials):
+default_sigma=0.8
+sigmas={}
+amps={}
+# Define the Gaussian function
+def gaussian(x, amplitude, std_dev, x_center):
+    return amplitude * np.exp(-((x - x_center) ** 2) / (2 * std_dev ** 2))
+def expand_list(values, before=50, after=50):
+    expanded_list = []
+    for i in range(len(values)):
+        # Get the range of indices for 50 elements before and after
+        start = max(0, i - before)
+        end = min(len(values), i + after + 1)
+        
+        # Extend the expanded_list with values from the range
+        expanded_list.extend(values[start:end])
+    
+    return expanded_list
+
+
+def area_under_bin(x_bin, y_bin):
+    """
+    Calculate the area under a curve for a specific bin.
+
+    Parameters:
+    - x: array-like, x-coordinates
+    - y: array-like, y-coordinates
+    - bin_start: int, starting index of the bin in x
+    - bin_end: int, ending index of the bin in x (inclusive)
+
+    Returns:
+    - area: float, the area under the curve in the specified bin
+    """
+    # Extract the relevant section of x and y for the specified bin
+
+    
+    # Calculate the area under the curve within this bin using the trapezoidal rule
+    area = np.trapz(y_bin, x_bin)
+    
+    return area
+
+for idx in range(n_trials):
     trials={}
     # Generate a new trial
     for key,study in studies.items():
-        print(key)
+        # print(key,study)
         trial = study.ask()
         trials[key]=trial
         try:
         # Evaluate the trial
             # Run the objective function with the trial's parameters
             step = 0.2
+            # print(element_range[key][0],element_range[key][1])
             weight_el = trial.suggest_float(f"weight_{key}", element_range[key][0], element_range[key][1], step=step)
             weights[key]=weight_el
             # weight_o = max(0,100 - weight_fe - weight_ti - weight_ca - weight_si - weight_al - weight_mg - weight_na)
             # weight_o = trial.suggest_float("weight_o", -2, 2, step=0.1)
+            sigmas[key]=trial.suggest_float(f"sigma_{key}", 0, default_sigma, step=0.001)
+            # amps[key]=trial.suggest_float(f"amps_{key}", 0, 5, step=0.5)
             
             # weight = [weight_fe, weight_ti, weight_ca, weight_si, weight_al, weight_mg, weight_na, weight_o]
             
@@ -238,38 +290,97 @@ for _ in range(n_trials):
     weights["o"]=max(0,100 - sum(weights.values()))
     total_weight = sum(weights.values())
     weight_cal=weights
-    print(weight_cal)
     # print(weight_cal)
+    # print(weight_cal)
+    areas={}
+    normalized_area={}
     for i in elements:
         # if i != 2:
         if i not in weight_cal.keys():
             weight_cal[i]=0
         weight_cal[i] = (weight_cal[i] / total_weight) * 100
-    # print(weight_cal)
+    # print("Energy",list(energy),weight_cal)
     flux = phy_model(energy, weight_cal.values(), original_intensities)
+    for i in elements:
+    
+        key=i
+        bin=elem_bins[key]
+        bin=np.array(bin).flatten()
+        bin=list(set(bin))
+        # if key=="ti":
+        #     print("Ti......\n\n",key,bin)
+        ebin=sorted(list(set(expand_list(bin,10,10))))
+        i0 = original_intensities[ebin]
+        area=area_under_bin(ebin,i0)
+        areas[i]=area
+
+        # print("area:",area,key,bin)
+    tot_area=sum(areas.values())
+    print("Area",areas,"-----------------\n\n")
+    normalized_area={key:value/tot_area for key,value in areas.items()}
+    # print(weight_cal)
     flux[flux<1e-5] = 0
     chi2 = 0
     nonzeroidx = np.nonzero(flux)
     flux2 = flux[nonzeroidx]
     # print(trials)
+    err=0
     for key,study in studies.items():
         bin=elem_bins[key]
         bin=np.array(bin).flatten()
+        bin=list(set(bin))
         # print(key,bin)
         el_flux = flux[bin]
-        i0 = original_intensities[bin]
+        nflux=np.zeros(shape=len(flux))
+        ebin=sorted(list(set(expand_list(bin,10,10))))
+
+        i0 = original_intensities[ebin]
+        # print(i0,el_flux)
+        # print(normalized_area[key])
+        # print("bins:" ,bin,ebin)
+        # print("ORIG: ",len(original_intensities),"Sigma: ",sigmas[key])
+        for item in bin:
+
+            # width=sigmas[key]/bin_size
+            x=np.arange(max(item-50,0), min(item + 50,2048))
+            x_center=centers[item]
+            # print("Element ceenter",item,key)
+
+            # print("Amp Multiplier",amps[key])
+            y_values=gaussian(x, flux[item], sigmas[key]*10, item)
+            nflux[x]+=y_values
+
+        # print(ebin)
+        
+        # Plot the Gaussian and bin points
+        plt.plot(range(0,2048), nflux, label='Gaussian')
+        # for bin_range, (x_bin, y_bin) in bin_points.items():
+        # plt.scatter(x, y_bin, s=10, label=f'Bin {bin_range}')
+        plt.xlabel('x')
+        plt.ylabel('Gaussian(x)')
+        plt.legend()
+        plt.savefig(f"images/{key}_{item}.jpg")
+        plt.clf()  # Clear the current figure
+
         chi2=0
+        print(f"Final {key}", normalized_area[key],sum(nflux[ebin]))
+
+        
         # print(len(i0),len(el_flux))
-        for i in range(len(el_flux)):
+        for i in range(len(nflux[ebin])):
             if i0[i] != 0:
-                chi2 += (el_flux[i] - i0[i])**2 / (i0[i])
+                # chi2 += (nflux[i] - i0[i])**2 / (i0[i])
+                chi2+=nflux[i]
+        chi2=(chi2-normalized_area[key])**2
         if trials[key] is not None:
             study.tell(trials[key],chi2)
-
+        if(key=="ca"):
+            print("Element: ",key,"err: ",chi2)
+        err+=chi2
     # weight[3] = 21
     # weight_sum = sum(weight)
     # weight = [w / weight_sum * 100 for w in weight]
-    
+    print(f"Error in {idx}:",err)
     
     
     # Tell the study that this trial has succeeded and report the value
@@ -278,9 +389,10 @@ for _ in range(n_trials):
 
 # Get the best parameters
 best_params=[]
+vars={}
 for key,study in studies.items():
-    best_params.extend(study.best_params.values())
-
+    best_params.append(list(study.best_params.values())[0])
+    vars[key]=list(study.best_params.values())[1]
 
 # best_params = study.best_params
 
@@ -291,17 +403,65 @@ best_params.append(100 - sum(best_params))
 # make everything add up to 100
 sum = sum(best_params)
 best_params = [best_params[i]/sum*100 for i in range(len(best_params))]
+def merge_close_values(arrays, threshold=10):
+    # Flatten the arrays and sort the values
+    values = np.sort(np.concatenate(arrays))
+    
+    # Initialize a list to hold merged groups
+    merged_values = []
+    current_group = [values[0]]
+    
+    # Iterate through sorted values and group close values
+    for i in range(1, len(values)):
+        if values[i] - values[i - 1] <= threshold:
+            # If the current value is close to the previous, add it to the current group
+            current_group.append(values[i])
+        else:
+            # Otherwise, finalize the current group and start a new one
+            merged_values.append(np.mean(current_group))  # Use mean for merged value
+            current_group = [values[i]]
+    
+    # Append the final group
+    if current_group:
+        merged_values.append(np.mean(current_group))
+    
+    return merged_values
 
-
-elements = ["Fe", "Ti", "Ca", "Si", "Al", "Mg", "Na", "O"]
-for i in range(len(best_params)):
-    print(elements[i],": ", best_params[i])
-
-mg_si_ratio = 28*best_params[5]/(24*best_params[3])
-print("mg/si ratio", mg_si_ratio)
+labels={}
+for key in elements:
+    if len(elem_bins[key])==0:
+        continue
+    labels[key]=merge_close_values(elem_bins[key])
+    print(f"{key}:", labels[key])
 
 # get flux using best_params
 best_flux = phy_model(energy, best_params, original_intensities)
+ # width=sigmas[key]/bin_size
+bflux=np.zeros(len(best_flux))
+tflux=np.zeros(len(original_intensities))
+for key in elements:
+    if key=="o":
+        continue
+    bins=np.array(elem_bins[key]).flatten()
+    for item in bins:
+        x=np.arange(max(item-50,0), min(item + 50,2048))
+        x_center=centers[item]
+        # print("Element ceenter",item,key)
+        # print("Amp Multiplier",amps[key])
+        y_values=gaussian(x, best_flux[item], vars[key], item)
+        bflux[x]+=y_values
+        # tflux[x]+=original_intensities[x]
+# bflux[bflux<0.00001]=0
+# best_flux=bflux
+print(best_flux)
+elements = ["Fe", "Ca", "Si", "Al", "Mg", "Na", "O"]
+
+for i in range(len(best_params)):
+
+    print(elements[i],": ", best_params[i])
+
+mg_si_ratio = 28*best_params[4]/(24*best_params[2])
+print("mg/si ratio", mg_si_ratio)
 
 # threshold to zero below 1e-3
 
@@ -311,11 +471,17 @@ best_flux = phy_model(energy, best_params, original_intensities)
 # best_flux = phy_model(energy, initial_guess, original_intensities)
 
 # fit a curve through the best flux taking x, y values corresponding to non zero y
-# non_zero_indices = np.where(best_flux != 0)
-# fys = best_flux[non_zero_indices]
+non_zero_indices = np.where(best_flux != 0)
+fys = best_flux[non_zero_indices]
 
 # fit a splined curve through the best flux
-# best_flux = np.interp(energy[1:], energy[non_zero_indices], fys)
+best_flux = np.interp(energy[1:], energy[non_zero_indices], fys)
+
+# non_zero_indices = np.where(tflux != 0)
+# fys = tflux[non_zero_indices]
+
+# fit a splined curve through the best flux
+# tflux = np.interp(tflux, tflux[non_zero_indices], fys)
 
 
 
@@ -331,14 +497,22 @@ best_flux = phy_model(energy, best_params, original_intensities)
 # plot both original and best flux in fig side by side
 fig, ax1 = plt.subplots(1,1, figsize=(12, 6))
 
+# Add element labels at specific x locations from `elem_bins`
+for elem, x_position in labels.items():
+    # y_position = np.interp(x_position, energy[1:], best_flux)  # Interpolate y-value at x_position
+    for i in range(len(x_position)):
+        # print(elem,x_position[i],y_position[i])
+        ax1.text(x_position[i]*10/2048, i*100 * 1.2, f"{elem}_{i}", ha='center', color="black")  # Adjust y offset if needed
+print(len(energy[1:]),len(tflux))
 # Plot original and best flux as curves
 ax1.plot(energy[1:], original_intensities, label="Original")
+# ax1.plot(energy[1:], tflux, label="Original")
 ax1.plot(energy[1:], best_flux, label="Best")
 ax1.set_yscale('log')
 ax1.set_xlabel("Energy (keV)")
 ax1.set_ylabel("Intensity")
 ax1.legend()
 ax1.set_xlim([0, 10])  # Set x-axis limits
-plt.show()
+plt.savefig("images/final.jpg")
 
 print(f"Best parameters: {best_params}")
