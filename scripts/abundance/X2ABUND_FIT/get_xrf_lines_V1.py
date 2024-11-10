@@ -33,7 +33,8 @@ def get_xrf_lines(at_no, k_shell, k_lines, l1_shell, l1_lines, l2_shell, l2_line
     photoncs_nist = dblarr(no_elements, 100)
     totalcs_nist = dblarr(no_elements, 100)
     elename_string = strarr(no_elements)
-    (atomic_number_list, kalpha_list, ele_list, be_list, density_list, kbeta_list) = readcol('/home/c12/miscellaneous/X2ABUND_LMODEL_V1/data_constants/kalpha_be_density_kbeta.txt', format='I,F,A,F,F,F')
+    # (atomic_number_list, kalpha_list, ele_list, be_list, density_list, kbeta_list) = readcol('/home/c12/miscellaneous/X2ABUND_LMODEL_V1/data_constants/kalpha_be_density_kbeta.txt', format='I,F,A,F,F,F')
+    (atomic_number_list, kalpha_list, ele_list, be_list, density_list, kbeta_list) = readcol('data_constants/kalpha_be_density_kbeta.txt', format='I,F,A,F,F,F')
 
     fullpath = os.path.abspath(__file__)
     script_path, filename = os.path.split(fullpath)
@@ -41,8 +42,9 @@ def get_xrf_lines(at_no, k_shell, k_lines, l1_shell, l1_lines, l2_shell, l2_line
     for i in range(0, no_elements):
         #; Getting the NIST cross-sections for all the elements
         tmp1 = np.where(atomic_number_list == at_no[i])
+        # print(ele_list[tmp1])
         elename_string[i] = ele_list[tmp1]
-        
+        # print(len(at_no))
         filename = script_path + '/data_constants/ffast/ffast_'+str(int(at_no[i])).strip()+'_'+(ele_list[tmp1])[0]+'.txt'#; Getting the attenuation coefficients from FFAST database
         # print(filename)
         # check if file exists

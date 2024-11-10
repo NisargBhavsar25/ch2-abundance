@@ -4,6 +4,7 @@ from scipy.interpolate import interp1d
 
 def xrf_comp(energy: list, counts, i_angle, e_angle, at_no: list, weight: list, xrf_lines:Xrf_Lines, const_xrf:Const_Xrf) -> Xrf_Struc:
     no_elements = len(at_no)
+    # print(energy,len(energy),"in xrfcomp")
     weight = np.array(weight) / np.sum(weight) 
     sin_i_angle = np.sin(i_angle * np.pi / 180)
     sin_e_angle = np.sin(e_angle * np.pi / 180)
