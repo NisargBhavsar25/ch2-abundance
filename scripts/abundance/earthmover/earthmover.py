@@ -2,7 +2,6 @@ import zipfile
 from astropy.io import fits
 import numpy as np
 import os
-import xml.etree.ElementTree as ET
 import numpy as np
 import pandas as pd
 from tqdm import tqdm

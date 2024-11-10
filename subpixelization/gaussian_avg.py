@@ -2,7 +2,6 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from scipy.spatial import ConvexHull
 from skimage.draw import polygon
 
 class GaussianArray:
