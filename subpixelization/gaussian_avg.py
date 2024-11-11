@@ -80,7 +80,7 @@ class GaussianArray:
         plt.ylabel('Y-axis')
         plt.show()
     
-    def export_figure_matplotlib(self, f_name, dpi=200, resize_fact=1, plt_show=False):
+    def export_figure_matplotlib(self, f_name, dpi=166, resize_fact=1, plt_show=False):
         arr = self.arr[:, :, 0]
         fig = plt.figure(frameon=False)
         fig.set_size_inches(arr.shape[1]/dpi, arr.shape[0]/dpi)
