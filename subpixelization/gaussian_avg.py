@@ -102,6 +102,20 @@ class GaussianArray:
             plt.show()
         else:
             plt.close()
+      
+    def export_coverage(self, f_name, dpi=166, resize_fact=1, plt_show=False):
+        arr = self.arr[:, :, 1]
+        fig = plt.figure(frameon=False)
+        fig.set_size_inches(arr.shape[1]/dpi, arr.shape[0]/dpi)
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+        ax.set_axis_off()
+        fig.add_axes(ax)
+        ax.imshow(arr)
+        plt.savefig(f_name, dpi=(dpi * resize_fact))
+        if plt_show:
+            plt.show()
+        else:
+            plt.close()    
 
 # Example usage
 # gaussian_array = GaussianArray(grid_size=(32,32))
