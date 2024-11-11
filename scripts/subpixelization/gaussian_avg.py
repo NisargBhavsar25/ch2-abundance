@@ -117,6 +117,10 @@ class GaussianArray:
         else:
             plt.close()    
 
+    def check_coverage(self):
+        coverage = np.sum(self.arr[:, :, 1] > 0) / np.prod(self.grid_size)
+        return coverage
+
 # Example usage
 # gaussian_array = GaussianArray(grid_size=(32,32))
 # gaussian_array.add_gaussian_box([-20, 20, 25, -30], [-20, -10, 30, 25], [-100, 100, 100, -100], [-100, -100, 100, 100], 5, plot=True)
