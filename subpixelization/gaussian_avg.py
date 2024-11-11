@@ -79,10 +79,24 @@ class GaussianArray:
         plt.xlabel('X-axis')
         plt.ylabel('Y-axis')
         plt.show()
+    
+    def export_figure_matplotlib(self, f_name, dpi=200, resize_fact=1, plt_show=False):
+        arr = self.arr[:, :, 0]
+        fig = plt.figure(frameon=False)
+        fig.set_size_inches(arr.shape[1]/dpi, arr.shape[0]/dpi)
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+        ax.set_axis_off()
+        fig.add_axes(ax)
+        ax.imshow(arr)
+        plt.savefig(f_name, dpi=(dpi * resize_fact))
+        if plt_show:
+            plt.show()
+        else:
+            plt.close()
 
 # Example usage
-gaussian_array = GaussianArray(grid_size=(32,32))
-gaussian_array.add_gaussian_box([-20, 20, 25, -30], [-20, -10, 30, 25], [-100, 100, 100, -100], [-100, -100, 100, 100], 5, plot=True)
-gaussian_array.add_gaussian_box([-20, 20, 25, -30], [-20, -10, 30, 25], [-100, 100, 90, -100], [-100, -80, 70, 100], 4.5, plot=True)
-gaussian_array.add_gaussian_box([-10, 40, 30, -10], [-25, -10, 30, 30], [-100, 100, 140, -100], [-100, -120, 100, 100], 5.5, plot=True)
-gaussian_array.add_gaussian_box([-30, 10, 30, -30], [-30, -40, 10, 10], [-100, 80, 80, -100], [-100, -60, 100, 100], 5.5, plot=True)
+# gaussian_array = GaussianArray(grid_size=(32,32))
+# gaussian_array.add_gaussian_box([-20, 20, 25, -30], [-20, -10, 30, 25], [-100, 100, 100, -100], [-100, -100, 100, 100], 5, plot=True)
+# gaussian_array.add_gaussian_box([-20, 20, 25, -30], [-20, -10, 30, 25], [-100, 100, 90, -100], [-100, -80, 70, 100], 4.5, plot=True)
+# gaussian_array.add_gaussian_box([-10, 40, 30, -10], [-25, -10, 30, 30], [-100, 100, 140, -100], [-100, -120, 100, 100], 5.5, plot=True)
+# gaussian_array.add_gaussian_box([-30, 10, 30, -30], [-30, -40, 10, 10], [-100, 80, 80, -100], [-100, -60, 100, 100], 5.5, plot=True)
