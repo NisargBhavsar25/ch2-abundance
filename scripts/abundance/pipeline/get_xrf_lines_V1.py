@@ -33,7 +33,7 @@ def get_xrf_lines(at_no, k_shell, k_lines, l1_shell, l1_lines, l2_shell, l2_line
     photoncs_nist = dblarr(no_elements, 100)
     totalcs_nist = dblarr(no_elements, 100)
     elename_string = strarr(no_elements)
-    (atomic_number_list, kalpha_list, ele_list, be_list, density_list, kbeta_list) = readcol('/home/c12/miscellaneous/X2ABUND_LMODEL_V1/data_constants/kalpha_be_density_kbeta.txt', format='I,F,A,F,F,F')
+    (atomic_number_list, kalpha_list, ele_list, be_list, density_list, kbeta_list) = readcol('./data_constants/kalpha_be_density_kbeta.txt', format='I,F,A,F,F,F')
 
     fullpath = os.path.abspath(__file__)
     script_path, filename = os.path.split(fullpath)

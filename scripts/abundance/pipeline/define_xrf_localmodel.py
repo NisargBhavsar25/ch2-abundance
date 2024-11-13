@@ -28,19 +28,26 @@ from scipy.signal import savgol_filter
 import numpy as np
 # Getting the static parameters for the local model
 static_parameter_file = "static_par_localmodel.txt"
-fid = open(static_parameter_file,"r")
-finfo_full = fid.read()
-finfo_split = finfo_full.split('\n')
-solar_file = finfo_split[0]
-solar_zenith_angle = float(finfo_split[1])
-emiss_angle = float(finfo_split[2])
-altitude = float(finfo_split[3])
-exposure = float(finfo_split[4])
-
-
+finfo_full=None
+solar_file=None
+solar_zenith_angle=None
+emiss_angle=None
+altitude=None
+exposure=None
 # Defining the model function
 def xrf_localmodel(energy, parameters, flux):
-    # Defining proper energy axis    
+    # Defining proper energy axis
+    global finfo_full,solar_file,solar_zenith_angle,emiss_angle,altitude,exposure
+    if finfo_full is None:
+        print("Reading params...")
+        fid = open(static_parameter_file,"r")
+        finfo_full = fid.read()
+        finfo_split = finfo_full.split('\n')
+        solar_file = finfo_split[0]
+        solar_zenith_angle = float(finfo_split[1])
+        emiss_angle = float(finfo_split[2])
+        altitude = float(finfo_split[3])
+        exposure = float(finfo_split[4])
     energy_mid = np.zeros(np.size(energy)-1)
     for i in np.arange(np.size(energy)-1):
         energy_mid[i] = 0.5*(energy[i+1] + energy[i])
@@ -93,6 +100,8 @@ xrf_localmodel_ParInfo = ("Wt_Fe \"\" 5 1 1 20 20 1e-2","Wt_Ti \"\" 1 1e-6 1e-6 
 
 # Creating the local model in PyXspec
 AllModels.addPyMod(xrf_localmodel, xrf_localmodel_ParInfo, 'add')
-def loadm():
+def loadm(param_file):
+    global static_parameter_file
+    static_parameter_file=param_file
     AllModels.addPyMod(xrf_localmodel, xrf_localmodel_ParInfo, 'add')
     return    
