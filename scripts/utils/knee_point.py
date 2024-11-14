@@ -100,10 +100,10 @@ class KneePoint:
 
 
 # example usage
-df = pl.read_parquet("/content/drive/MyDrive/Data/param_parquets/ch2_cla_l1_2024_01.parquet")
+# df = pl.read_parquet()
 
-knee_finder = KneePoint(df)
+# knee_finder = KneePoint(df)
 
-sorted_df, knee = knee_finder.calculate_knee_point(plot=True)
+# sorted_df, knee = knee_finder.calculate_knee_point(plot=True)
 
-knee_finder.plot_samples(knee=knee)
+# knee_finder.plot_samples(knee=knee)
