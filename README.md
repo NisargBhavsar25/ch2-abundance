@@ -77,10 +77,10 @@ C:.
 │   └── scripts
 │       ├── solar_model.py
 │       ├── tbmodel.fits
-│       ├── spectrum
-│       │   ├── table
-│       │   ├── spec_arf
-│       │   └── spec_pha
+│       └── spectrum
+│           ├── table
+│           ├── spec_arf
+│           └── spec_pha
 │
 ├── mineral_groups
 │   └── find_rocks.py
