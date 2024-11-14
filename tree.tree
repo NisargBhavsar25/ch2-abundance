@@ -1,0 +1,102 @@
+.
+├── main.py
+├── preprocess
+├── scripts
+│   ├── abundance
+│   │   ├── earthmover
+│   │   │   ├── earthmover.py
+│   │   │   └── utils.py
+│   │   ├── optimizer.py
+│   │   ├── pipeline
+│   │   │   ├── BKG
+│   │   │   ├── common_modules.py
+│   │   │   ├── data_constants
+│   │   │   │   ├── ffast
+│   │   │   │   ├── form_factors
+│   │   │   │   └── xcom
+│   │   │   ├── define_xrf_localmodel.py
+│   │   │   ├── fits_utils.py
+│   │   │   ├── get_constants_xrf_new_V2.py
+│   │   │   ├── get_xrf_lines_V1.py
+│   │   │   ├── get_xrf_lines_V2.py
+│   │   │   ├── mergeFits.py
+│   │   │   ├── parallel.py
+│   │   │   ├── test
+│   │   │   │   ├── test_fits.py
+│   │   │   │   └── test_x2abund.py
+│   │   │   ├── xrf_comp_new_V2.py
+│   │   │   └── xrf_comp_new_V3.py
+│   │   ├── test
+│   │   │   └── converted
+│   │   ├── X2ABUND_FIT
+│   │   │   ├── background.py
+│   │   │   ├── common_modules.py
+│   │   │   ├── data_constants
+│   │   │   │   ├── ffast
+│   │   │   │   ├── form_factors
+│   │   │   │   └── xcom
+│   │   │   ├── define_xrf_localmodel.py
+│   │   │   ├── fit_larch.py
+│   │   │   ├── fit_optuna.py
+│   │   │   ├── get_constants_xrf_new_V2.py
+│   │   │   ├── get_xrf_lines_V1.py
+│   │   │   ├── get_xrf_lines_V2.py
+│   │   │   ├── mergeFits.py
+│   │   │   ├── parallel.py
+│   │   │   ├── __pycache__
+│   │   │   ├── responsefiles.py
+│   │   │   ├── scripts
+│   │   │   │   ├── plot_fits.py
+│   │   │   │   └── test_fits.py
+│   │   │   ├── single_fit_optuna.py
+│   │   │   ├── tempCodeRunnerFile.py
+│   │   │   ├── tes.py
+│   │   │   ├── test
+│   │   │   │   ├── test_fits.py
+│   │   │   │   └── test_x2abund.py
+│   │   │   ├── test.py
+│   │   │   ├── tif.py
+│   │   │   ├── xrf_comp_new_V2.py
+│   │   │   └── xrf_comp_new_V3.py
+│   │   └── x2abund.py
+│   ├── albedo_overlay
+│   │   └── xrf_line_lunar_mapping.py
+│   ├── flare_catalog
+│   │   ├── classifier_loop.py
+│   │   ├── classifier.py
+│   │   ├── pipeline.py
+│   │   └── SD_classifier_output
+│   ├── flare_ops
+│   │   └── scripts
+│   │       ├── gen_files.py
+│   │       ├── getFitsforXSM.py
+│   │       ├── solar_model_1.py
+│   │       ├── solar_model.py
+│   │       ├── spec_arf
+│   │       ├── spec_pha
+│   │       └── spectrum
+│   │           └── table
+│   ├── __init__.py
+│   ├── mineral_groups
+│   │   └── mineral.py
+│   ├── subpixelization
+│   │   └── gaussian_avg.py
+│   ├── utils
+│   │   ├── catalog.py
+│   │   ├── improve_overlap.py
+│   │   ├── knee_point.py
+│   │   ├── lunar_map.py
+│   │   ├── overlap.py
+│   │   └── ratio_to_mineral.py
+│   └── validation
+│       ├── LPGRS
+│       │   ├── add_header.py
+│       │   ├── search_for_lat_lon.py
+│       │   └── tab_to_csv.py
+│       └── TIF
+│           ├── TIF_DATA
+│           └── tiff.py
+└── solar
+    └── solar_process.ipynb
+
+39 directories, 61 files
