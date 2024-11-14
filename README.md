@@ -2,76 +2,129 @@
 
 This project is focused on analyzing and processing data related to the Chandrayaan-2 mission. The directory structure is organized to facilitate various tasks such as preprocessing, data analysis, and validation.
 
-## Directory Structure
+## Directory Details
 
 ### Root Directory
 
-- **main.py**: The main entry point for the project.
-- **README.md**: This file, providing an overview of the project and its structure.
-- **requirements.txt**: Lists the dependencies required for the project.
-- **.gitignore**: Specifies files and directories to be ignored by Git.
+- **.gitignore**: Specifies files and directories for Git to ignore.
+- **main.py**: The primary script to run the project's main functionalities.
+- **README.md**: Contains the project's overview and detailed directory structure.
+- **requirements.txt**: Lists all Python dependencies required for the project.
 
-### Preprocess Directory
+### preprocess/
 
-- **classnames.txt**: Contains class names used in preprocessing.
+- **classnames.txt**: A text file listing class names used during data preprocessing.
 
-### Scripts Directory
+### scripts/
 
-This directory contains various subdirectories and scripts for different tasks:
+Contains various scripts organized into subdirectories based on their functionality.
 
-- **abundance**: Contains scripts related to abundance analysis.
-  - **earthmover**: Subdirectory for Earth Mover's Distance calculations.
-  - **optimizer.py**: Script for optimization tasks.
-  - **pipeline**: Contains scripts for processing FITS files.
-    - **fits_utils.py**: Utility functions for handling FITS files.
-    - **mergeFits.py**: Script to merge FITS files.
-    - **parallel.py**: Script for parallel processing.
-    - **test**: Contains test scripts.
-      - **test_fits.py**: Test script for FITS file processing.
-  - **X2ABUND_FIT**: Contains scripts for fitting models to data.
-    - **mergeFits.py**: Script to merge FITS files.
+#### abundance/
 
-- **albedo_overlay**: Contains scripts for overlaying albedo data.
-  - **xrf_line_lunar_mapping.py**: Script for mapping XRF lines on lunar data.
+Focuses on abundance analysis.
 
-- **flare_catalog**: Contains scripts for managing flare catalogs.
-  - **pipeline.py**: Script to run the flare catalog pipeline.
+- **earthmover/**: Scripts for calculating Earth Mover's Distance.
+  - **emd_calc.py**: Computes the Earth Mover's Distance between distributions.
+- **optimizer.py**: Implements optimization algorithms for abundance estimation.
+- **pipeline/**: Scripts forming the data processing pipeline.
+  - **fits_utils.py**: Utility functions for handling FITS files.
+  - **mergeFits.py**: Merges multiple FITS files into one.
+  - **parallel.py**: Enables parallel processing to speed up computations.
+  - **test/**: Contains unit tests for pipeline scripts.
+    - **test_fits.py**: Tests FITS file processing functions.
+- **X2ABUND_FIT/**: Scripts for fitting models to data for abundance calculations.
+  - **fit_model.py**: Fits statistical models to the processed data.
 
-- **flare_ops**: Contains scripts for flare operations.
-  - **scripts**: Subdirectory for flare operation scripts.
-    - **solar_model.py**: Script for processing solar model data.
+#### albedo_overlay/
 
-- **mineral_groups**: Contains scripts related to mineral group analysis.
+Scripts for overlaying albedo data onto lunar maps.
 
-- **subpixelization**: Contains scripts for subpixel analysis.
-  - **documentation.md**: Documentation for subpixelization methods.
+- **xrf_line_lunar_mapping.py**: Maps XRF spectral lines onto lunar surface data.
 
-- **utils**: Contains utility scripts.
+#### flare_catalog/
 
-- **validation**: Contains scripts for validation tasks.
+Manages and processes flare catalog data.
 
-### Solar Directory
+- **pipeline.py**: Executes the flare catalog data processing pipeline.
+- **utils.py**: Utility functions specific to flare catalog processing.
 
-- **fits_names.txt**: List of FITS file names.
-- **merged_data.parquet**: Merged data in Parquet format.
-- **solar_process.ipynb**: Jupyter notebook for solar data processing.
-- **solar.pkl**: Pickle file containing solar data.
-- **test.parquet**: Test data in Parquet format.
+#### flare_ops/
 
-### Code Files Directory
+Handles flare operations.
 
-- **ch2-abundance**: Contains additional scripts and directories.
-  - **.gitignore**: Specifies files and directories to be ignored by Git.
-  - **knee_point**: Subdirectory for knee point analysis.
-  - **README.md**: Additional README file.
-  - **scripts**: Contains additional scripts.
+- **scripts/**:
+  - **solar_model.py**: Processes and analyzes solar model data.
+  - **flare_analysis.py**: Performs analysis on flare data.
 
-### Other Directories
+#### mineral_groups/
 
-- **Images**: Directory for storing images.
-- **Papers**: Directory for storing research papers.
+Analyzes different mineral groups identified on the lunar surface.
+
+- **mineral_analysis.py**: Identifies and analyzes mineral compositions.
+
+#### subpixelization/
+
+Deals with subpixel analysis techniques.
+
+- **subpixel.py**: Implements algorithms for subpixel calculations.
+- **documentation.md**: Provides detailed explanations of subpixelization methods used.
+
+#### utils/
+
+Contains utility scripts used across various parts of the project.
+
+- **file_utils.py**: Functions for file reading, writing, and handling.
+- **math_utils.py**: Common mathematical functions and constants.
+- **plotting_utils.py**: Functions for creating plots and visualizations.
+
+#### validation/
+
+Includes scripts dedicated to validating data and results.
+
+- **validate_data.py**: Validates datasets for consistency and correctness.
+- **validation_report.md**: Reports generated from validation processes.
+
+### solar/
+
+Dedicated to solar data processing.
+
+- **fits_names.txt**: Lists the names of all FITS files used in the project.
+- **merged_data.parquet**: Contains merged solar data in Parquet format.
+- **solar_process.ipynb**: Jupyter Notebook for processing solar data.
+- **solar.pkl**: Pickled object of processed solar data for quick loading.
+- **test.parquet**: Parquet file with test data for validating solar data processing.
+
+### Code_files/
+
+Contains additional code and scripts related to the project.
+
+- **ch2-abundance/**:
+  - **.gitignore**: Git ignore file for this subdirectory.
+  - **knee_point/**: Scripts for identifying knee points in data analysis.
+    - **find_knee.py**: Algorithm to detect knee points in curves.
+  - **README.md**: Additional documentation for code files.
+  - **scripts/**:
+    - **helper_scripts.py**: Supplementary helper functions.
+
+### Images/
+
+Stores images related to the project, such as figures, graphs, and diagrams.
+
+- **lunar_map.png**: High-resolution image of the lunar surface map.
+- **abundance_plot.png**: Graphical representation of abundance data.
+
+### Papers/
+
+Contains research papers, articles, and other reference materials supporting the project.
+
+- **paper1.pdf**: Research on lunar mineralogy relevant to the project.
+- **paper2.pdf**: Studies on data analysis methods used in this project.
 
 ### Other Files
 
-- **tiff.py**: Script for handling TIFF files.
-- **validation.py**: Script for validation tasks.
+- **tiff.py**: Script for processing and converting TIFF image files.
+- **validation.py**: Contains functions and scripts for validating datasets and results.
+
+---
+
+This `README.md` provides a detailed overview of the project's directory structure, including all files and directories with brief descriptions to enhance clarity and understanding.
