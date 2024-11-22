@@ -3,7 +3,7 @@ import pandas as pd
 # Sample CSV data loading (assuming the CSV file is named 'data.csv')
 
 # Function to find the pixel indices for the given lat/lon
-def find_pixel_indices(path, lat, lon):
+def get_abundance(path, lat, lon):
     pixel_indices = []  # Initialize an empty list to collect pixel indices
     df = pd.read_csv(path)  # Load the CSV file into a pandas dataframe
     elements = ['W_MGO','W_AL2O3','W_SIO2','W_CAO','W_TIO2','W_FEO','W_K','W_TH','W_U']
@@ -24,5 +24,5 @@ path = r'scripts\validation\LPGRS\lpgrs_high1_elem_abundance_2deg.csv'
 lat = 12.34  # example latitude
 lon = -56.78  # example longitude
 
-pixel_indices = find_pixel_indices(path, lat, lon)
+pixel_indices = get_abundance(path, lat, lon)
 print("Abundance Values:", pixel_indices)
