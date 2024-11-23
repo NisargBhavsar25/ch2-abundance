@@ -21,12 +21,20 @@ def convert_to_1024_channels(input_file,output_file):
         header = hdu1.header
         data = hdu1.data
 
+        # Assuming this is within a function where the header is being modified
+        current_dir = os.path.dirname(os.path.abspath(__file__))  # Get the absolute path of the current directory
+        test_dir = os.path.join(current_dir, 'test')  # Construct the path to the 'test' directory
+
         # Update RESPFILE and ANCRFILE values
-        header['RESPFILE'] = "/home/heasoft/ch2-abundance/scripts/abundance/pipeline/test/class_rmf_v1.rmf"
-        header['ANCRFILE'] = "/home/heasoft/ch2-abundance/scripts/abundance/pipeline/test/class_arf_v1.arf"
+        header['RESPFILE'] = os.path.join(test_dir, 'class_rmf_v1.rmf')
+        header['ANCRFILE'] = os.path.join(test_dir, 'class_arf_v1.arf')
+        print(header['RESPFILE'])
         header['DETCHANS'] = 1024
         header['TLMIN1'] = 0
         header['TLMAX1'] = 1023
+        header['TFORM2'] = '1D'
+        header['NAXIS1'] = 10
+        header['GAIN'] = 27
         # Reduce the data to 1024 channels by summing every two adjacent counts
         new_counts = np.add.reduceat(data['COUNTS'], np.arange(0, len(data['COUNTS']), 2))
         new_channels = np.arange(0, 1024)  # New channel numbers from 1 to 1024

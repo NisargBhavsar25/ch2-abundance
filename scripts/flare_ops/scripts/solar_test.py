@@ -10,6 +10,7 @@ import os
 import shutil
 #ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits
 #modelop_20210827T210316000_20210827T210332000.txt
+import matplotlib.pyplot as plt
 
 
 # Specify the destination folder (make sure it exists)
@@ -25,7 +26,8 @@ modelfile = '../chspec'
 
 spec=None
 import subprocess
-def process_spectrum(date_str, l1dir=None, l2dir=None,fpath="/home/heasoft/data/xsm/xsm_all/xsm/xsm/data"):
+
+def process_spectrum(date_str, l1dir=None, l2dir=None,fpath="/root/code/data/xsm/"):
     """
     Processes the spectrum for the given date.
 
@@ -41,13 +43,16 @@ def process_spectrum(date_str, l1dir=None, l2dir=None,fpath="/home/heasoft/data/
     tref = datetime(2017, 1, 1)
     
     # Calculate start and stop times for spectrum generation
-    tstart = (datetime(date.year, date.month, date.day, 0, 1,0) - tref).total_seconds()
-    tstop = (datetime(date.year, date.month, date.day, 23, 59,59) - tref).total_seconds()
+    # tstart = (datetime(date.year, date.month, date.day, 0, 1,0) - tref).total_seconds()
+    tstart = 146869396.0
+    # tstop = (datetime(date.year, date.month, date.day, 23, 59,59) - tref).total_seconds()
+    tstop = 146869412.0
     # Generate default directories if not provided
     if l1dir is None:
-        l1dir = f"{fpath}/{date.year}/{date.month:02d}/{date.day:02d}/raw"
+        # l1dir = f"{fpath}/{date.year}/{date.month:02d}/{date.day:02d}/raw"
+        l1dir = f"{fpath}/{date_str}/raw"
     if l2dir is None:
-        l2dir = f"{fpath}/{date.year}/{date.month:02d}/{date.day:02d}/calibrated"
+        l2dir = f"{fpath}/{date_str}/calibrated"
 
     # Base filename for the data files
     base = f"ch2_xsm_{date.year}{date.month:02d}{date.day:02d}_v1"
@@ -126,15 +131,26 @@ def model_solar(specfile, backfile, tablefile, model_choice="chisoth"):
     # Clear any previous data and models
     AllData.clear()
     AllModels.clear()
-    
+    abundance_values = [
+    1.000e+00, 9.770e-02, 1.260e-11, 2.510e-11, 3.550e-10,
+    3.980e-04, 1.000e-04, 8.510e-04, 3.630e-08, 1.290e-04,
+    2.140e-06, 3.800e-05, 2.950e-06, 3.550e-05, 2.820e-07,
+    1.620e-05, 3.160e-07, 4.470e-06, 1.320e-07, 2.290e-06,
+    1.480e-09, 1.050e-07, 1.000e-08, 4.680e-07, 2.450e-07,
+    3.240e-05, 8.320e-08, 1.780e-06, 1.620e-08, 3.980e-08
+]
+
     # Load spectrum with background
     spec = Spectrum(specfile, backFile=backfile)
-
+    print(spec.values)
     # Set energy range for analysis
-
+    spec.ignore("**-1.3 4.2-**")
+    # Plot.device = '/xw'    
+    Plot.xAxis = 'keV'
+    Plot('ld')
     m1 = Model(model_choice+"+constant*atable{tbmodel.fits}")
     # print("here after model")
-    AllModels.setEnergies("0.1,32,3000")
+    # AllModels.setEnergies("0.1,32,3000")
     # print("here after set energy")
     # m1 = Model(model_choice)
     # sf = Model("constant")
@@ -145,46 +161,127 @@ def model_solar(specfile, backfile, tablefile, model_choice="chisoth"):
 
     # s1.atable.par1 = 1.0  # Example: scaling factor for table model
     # s1.atable.par1.frozen = False  # Free the parameter to vary in fitting
-    m1.show()
     # print("Parameter 1 name:", m1(34).name)
     # print("Parameter 1 value:", m1(34).values)
     # print("setting values here:")
     m1(34).values = [1.0, 0.01, 0.0, 0.0, 2.0, 2.0]
     # print("were values set?")
-    Fit.nIterations = 1000      # Set maximum number of fitting trials to a high number
+    Fit.nIterations = 10      # Set maximum number of fitting trials to a high number
 
     # Initialize and fit the chosen model
     if model_choice == "chisoth":
         # m1 = Model("chisoth")
         Fit.perform()
+        Plot('ld','delc')
+
         m1(34).frozen=False
-        m1(35).frozen=False
-        m1(12).frozen = False
-        m1(13).frozen = False
-        m1(14).frozen = False
-        m1(16).frozen = False
+        for i in range(2,32):
+            m1(i).values=str(abundance_values[i-2])
+
+            m1(i).frozen=False
+        m1.show()
+        # m1(35).frozen=False
+        # m1(12).frozen = False
+        # m1(13).frozen = False
+        # m1(14).frozen = False
+        # m1(16).frozen = False
     elif model_choice == "vvapec":
         # s1(1).frozen=False
         # s1(2).frozen=False
         # m1 = Model("vvapec")
         Fit.perform()
+        Plot('ld','delc')
+
         m1(34).frozen=False
-        m1(35).frozen=False
-        m1(13).frozen = False
-        m1(14).frozen = False
-        m1(15).frozen = False
-        m1(17).frozen = False
+        m1(35).frozen=True
+        m1(36).frozen=True
+        # m1(34).frozen=False
+        for i in range(2,32):
+            m1(i).values=str(abundance_values[i-2])
+            m1(i).frozen=False
+        m1.show()
+        # m1(35).frozen=False
+        # m1(13).frozen = False
+        # m1(14).frozen = False
+        # m1(15).frozen = False
+        # m1(17).frozen = False
     else:
         raise ValueError("Invalid model choice. Choose either 'chisoth' or 'vvapec'.")
     
     # Perform initial fit
     
     # Free abundances and re-fit
+    Fit.statMethod = "chi"
     Fit.perform()
+    Plot('ld','delc')
+    Fit.show()
 
     # Display fit parameters
-    AllModels.show(parIDs="1 2 13 14 16 17 31")
+    AllModels.show(parIDs="1 2 3 4 5 6 7 9 10 11 12 13 14 15 16 17 18 19 20 34")
+#    Plot('ld','delc')
+    AllModels.calcFlux(f"0.1 0.11")
+    print("Flux 0.1-0.11`",spec.flux[3]/0.01)
+    AllModels.calcFlux(f"13.7 13.71")
+    print("Flux 13.7-13.71`",spec.flux[3]/0.01)
+    AllModels.calcFlux(f"2.83 2.84")
+    print("Flux 2.83-2.84",spec.flux[3]/0.01)
+    AllModels.calcFlux(f"2.84 2.85")
+    print("Flux 2.84-2.85",spec.flux[3]/0.01)
+    AllModels.calcFlux(f"1.81 1.82")
+    print("Flux 1.81-1.82",spec.flux[3]/0.01)
+    ene=Plot.x(plotGroup=1, plotWindow=1)
+    eneErr=Plot.xErr(plotGroup=1, plotWindow=1)
+    spec=Plot.y(plotGroup=1, plotWindow=1)
+    specErr=Plot.yErr(plotGroup=1, plotWindow=1)
+            
+    fitmodel=Plot.model(plotGroup=1, plotWindow=1)
+    print(fitmodel,len(fitmodel))       
+    delchi=Plot.y(plotGroup=1, plotWindow=2)
+    delchiErr=Plot.yErr(plotGroup=1, plotWindow=2)
+    print(ene,spec,type(spec))
+    fig0 = plt.figure( figsize=(6, 4), facecolor='w', edgecolor='k')
+            
+    ax0 = fig0.add_axes([0.15, 0.4, 0.8, 0.55])
+    ax0.xaxis.set_visible(False)
+    plt.errorbar(ene,spec,xerr=eneErr,yerr=specErr,fmt='.',ms=0.5,capsize=1.0,lw=0.8)
+    plt.step(ene,fitmodel,where='mid',marker='o', linestyle='-', color='b', label='data Plot')
+    plt.step(ene,spec,where='mid',marker='o', linestyle='-', color='g', label='data Plot')
+    # # plt.yscale("log")
+    # # plt.xscale("log")
+    plt.xlim([1.3,4.5])
+    plt.ylim([0.1,1e4])
+    plt.ylabel('Rate (counts s$^{-1}$ keV$^{-1}$)')
+
+
+    ax1 = fig0.add_axes([0.15, 0.15, 0.8, 0.25])
+    plt.axhline(0,linestyle='dashed',color='black')
+    plt.errorbar(ene,delchi,xerr=eneErr,yerr=delchiErr,fmt='.',ms=0.1,capsize=1.0,lw=0.8)
+    # plt.xscale("log")
+    # plt.xlim([1.3,4.5])         
+    # plt.ylabel('$\Delta \chi$')
+
+    # plt.xlabel('Energy (keV)')
+
+    # plt.show()
+    # plt.savefig("solar_plot.png")
+    # plt.close()
+    # Create a line plot
+    # plt.figure(figsize=(8, 5))  # Set the figure size
+    # plt.step(ene, spec, marker='o', linestyle='-', color='b', label='data Plot')  # Plot with markers
+    # plt.step(ene, fitmodel, marker='o', linestyle='-', color='g', label='model Plot')  # Plot with markers
+
+    # Add title and labels
+    plt.title('Simple Line Plot')
+    plt.xlabel('X Values')
+    plt.ylabel('Y Values')
+
+    # Add a legend
+    plt.legend()
+    # Show grid
+    plt.grid()
+    plt.savefig("solar_step_plot.png")
     # AllModels.show(parIDs="1 2")
+    # Fit.error("1.0 1,13,15,17,33")
 
     # Save model configuration to .xcm file
     # fxcm = specfile.replace('.pha', '_Fit.xcm')
@@ -253,8 +350,8 @@ def format_value(val, threshold=1e-6):
 # Choose the model
 # model_choice = "vvapec"  # Options: "chisoth" or "vvapec"
 # output_filename = "spectrum/"+specname+f"_{model_choice}_2.txt"
-Xset.logChatter = 0
-Xset.chatter = 0
+# Xset.logChatter = 0
+# Xset.chatter = 0
 
 # Set up the model
 # model_solar(specfile, backfile, modelfile, model_choice=model_choice)
@@ -310,30 +407,48 @@ def process_spectrum_file(file_path, dt, spectrum_folder, table_folder):
     specbase = f"ch2_xsm_{dt}_l1"
     specfile = specbase + ".pha"
     res=process_spectrum(dt)
+    # return
+
+
     if not res:
         with lock:
             with open("failed.txt","a") as f:
                 f.write(file_path+"\n")
         return
-    backfile = "/home/heasoft/xsm_analysis/scripts/ch2_xsm_20200128_bkg.pha"
+    backfile = "/root/code/xsmdas/caldb/bkgspec/ch2_xsm_20200128_bkg.pha"
     specname = specbase.split("/")[-1]
     model_choice = "vvapec"  # Use "chisoth" or "vvapec" as needed
     output_filename = os.path.join(spectrum_folder, f"{specname}_{model_choice}.txt")
     
     # Set XSPEC options
-    Xset.logChatter = 0
-    Xset.chatter = 0
-    
+    # Xset.logChatter = 0
+    # Xset.chatter = 0
+    # 
     # Run model setup and calculate flux
     modelfile = None  # Assuming this is defined elsewhere
     final_table_file = os.path.join(table_folder, f"t{dt}.fits")
     model_solar(specfile, backfile, final_table_file, model_choice=model_choice)
+    return
     calc_flux(output_filename, energy_start=0.1, energy_end=30.0, energy_step=0.01)
-    
     # Move and rename files as required
     shutil.move(specfile, os.path.join("spec_pha",specfile))
     shutil.move(specbase+".arf", os.path.join("spec_arf",specbase+".arf"))
     print(f"Processed {file_path} and saved outputs to {output_filename} and {final_table_file}")
 
 # Assuming `process_spectrum`, `model_solar`, and `calc_flux` are defined functions, call the main function:
-process_files_in_xsm_folder()
+# process_files_in_xsm_folder()
+import argparse
+
+def main():
+    parser = argparse.ArgumentParser(description='Process a single spectrum file')
+    parser.add_argument('file_path', help='Path to the spectrum file')
+    parser.add_argument('dt', help='Date string in the format YYYYMMDD')
+    parser.add_argument('spectrum_folder', help='Folder to save the spectrum file')
+    parser.add_argument('table_folder', help='Folder to save the table file')
+    args = parser.parse_args()
+
+    process_spectrum_file(args.file_path, args.dt, args.spectrum_folder, args.table_folder)
+
+if __name__ == "__main__":
+    main()
+

@@ -27,15 +27,23 @@ solar_dict = pickle.load(open("solar.pkl", "rb"))
 catalog = pd.read_parquet("test.parquet")
 catalog=catalog[catalog["flare_class_with_bg"].str.startswith("X")|catalog["flare_class_with_bg"].str.startswith("M")|catalog["flare_class_with_bg"].str.startswith("C")]
 # Constants
-base_path = '/home/heasoft/ch2-abundance/scripts/abundance/pipeline/test'
-data_folder = "/home/heasoft/ch2-abundance/scripts/abundance/test/"
-solar_path = "/home/heasoft/ch2-abundance/scripts/flare_ops/scripts/spectrum"
+# base_path = '/home/heasoft/ch2-abundance/scripts/abundance/pipeline/test'
+# data_folder = "/home/heasoft/ch2-abundance/scripts/abundance/test/"
+# solar_path = "/home/heasoft/ch2-abundance/scripts/flare_ops/scripts/spectrum"
+import os
+
+# Constants
+base_path = os.path.join(os.path.dirname(__file__), 'test')  # Relative to the current script's directory
+data_folder =  os.path.normpath(os.path.join(os.path.dirname(__file__), '../test/'))  # Go up one directory to 'abundance' and then to 'test'
+solar_path =  os.path.normpath(os.path.join(os.path.dirname(__file__), '../../flare_ops/scripts/spectrum'))  # Go up two directories to 'ch2-abundance' and then to 'flare_ops/scripts/spectrum'
 ignore_erange = ["0.9", "4.2"]
 ignore_string = f'0.0-{ignore_erange[0]} {ignore_erange[1]}-**'
 results=[]
 # Define atomic numbers and corresponding model parameter indices
 elements_atomic_numbers = np.array([26, 22, 20, 14, 13, 12, 11, 8])  # Fe, Ti, Ca, Si, Al, Mg, Na, O
 model_param_indices = [3, 4, 5, 7, 8, 9, 10, 11]  # Adjusted according to your model parameters
+# respfile=  os.path.normpath(os.path.join(os.path.dirname(__file__), '/test/','class_rmf_v1.rmf') )
+respfile="/root/code/ch2-abundance/scripts/abundance/pipeline/test/class_rmf_v1.rmf"
 
 # Process counter
 counter = 0
@@ -57,6 +65,7 @@ for index, row in tqdm(catalog.iterrows(), total=len(catalog)):
     
     # Define file paths
     class_l1_data = os.path.join(data_folder, f'ch2_cla_l1_{tst}.fits')
+    # class_l1_data="/root/code/ch2-abundance/scripts/abundance/pipeline/test/ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits"
     bkg_file = os.path.join(base_path, 'ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits')
     # bkg_file = "/home/heasoft/ch2-abundance/scripts/abundance/pipeline/BKG/ch2_cla_l1_20200529T104508257_20200529T104516257.fits"
     # bkg_root="/home/heasoft/ch2-abundance/scripts/abundance/pipeline/BKG/modified"
@@ -90,7 +99,8 @@ for index, row in tqdm(catalog.iterrows(), total=len(catalog)):
     # exposure = float(finfo_split[4])
     
 
-    tmp_class_l1_data="/home/heasoft/ch2-abundance/scripts/abundance/test/converted/"+f'ch2_cla_l1_{tst}.fits'
+    # Construct the path to the converted data
+    tmp_class_l1_data = os.path.join(os.path.dirname(__file__), '../test/converted', f'ch2_cla_l1_{tst}.fits')
     # if not os.path.exists(tmp_class_l1_data):
     convert_to_1024_channels(class_l1_data,tmp_class_l1_data)
     # tmp_class_l1_data=class_l1_data
@@ -103,7 +113,7 @@ for index, row in tqdm(catalog.iterrows(), total=len(catalog)):
     
     # Load spectrum and background data
     # tmp_class_l1_data="/home/heasoft/ch2-abundance/scripts/abundance/pipeline/test/ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits"
-    spec_data = Spectrum(tmp_class_l1_data)
+    spec_data = Spectrum(tmp_class_l1_data,backFile=bkg_file)
     spec_data.background = bkg_file
     spec_data.ignore(ignore_string)
 
@@ -122,13 +132,13 @@ for index, row in tqdm(catalog.iterrows(), total=len(catalog)):
     mo(6).link = '100 - (3+4+5+7+8+9+10)'
 
     # Parameter 3 (Fe)
-    mo(3).values = [5.0, 0.1, 0.0, 3.0, 13.0, 13.0]  # initial, delta, min, bot, top, max
+    mo(3).values = [5.0, 0.1, 0.0, 3.0, 15.0, 15.0]  # initial, delta, min, bot, top, max
 
     # Parameter 4 (Ti)
     mo(4).values = [1.0, 0.01, 0.0, 0.0, 3, 3]  # initial, delta, min, bot, top, max
 
     # Parameter 5 (Ca)
-    mo(5).values = [9.0, 0.1, 6.0, 8.0, 12.0, 12.0]  # initial, delta, min, bot, top, max
+    mo(5).values = [9.0, 0.1, 6.0, 8.0, 15.0, 15.0]  # initial, delta, min, bot, top, max
 
     # Parameter 6 (Si)
     mo(6).values = [21.0, 0.1, 18.0, 18.0, 23.0, 23.0]  # initial, delta, min, bot, top, max
@@ -137,7 +147,7 @@ for index, row in tqdm(catalog.iterrows(), total=len(catalog)):
     mo(7).values = [14.0, 0.1, 13.0, 13.0, 15.0, 15.0]  # initial, delta, min, bot, top, max
 
     # Parameter 8 (Mg)
-    mo(8).values = [5.0, 0.1, 3.0, 3.0, 9.0, 9.0]  # initial, delta, min, bot, top, max
+    mo(8).values = [5.0, 0.1, 3.0, 3.0, 20.0, 20.0]  # initial, delta, min, bot, top, max
 
     # Parameter 9 (Na)
     mo(9).values = [0.5, 0.01, 0.0, 0.0, 1.0, 1.0]  # initial, delta, min, bot, top, max
@@ -151,7 +161,7 @@ for index, row in tqdm(catalog.iterrows(), total=len(catalog)):
     # weight_na = trial.suggest_float("weight_na", 0, 1, step=step)
 
 
-    Fit.nIterations = 5
+    Fit.nIterations = 10000
     print("Fitting now...\n\n")
     start_fit = time.perf_counter()
     Fit.delta = 0.01

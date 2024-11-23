@@ -1,20 +1,35 @@
 ***Warning: Detected response matrix energy bin value = 0 (or neg).
      XSPEC will instead use small finite value (response file will not be altered).
 
-***Error while attempting to read ARF file /home/heasoft/ch2-abundance/scripts/abundance/pipeline/test/class_arf_v1.arf EXTVERS number 1
+***Error while attempting to read ARF file /root/code/ch2-abundance/scripts/abundance/pipeline/test/class_arf_v1.arf EXTVERS number 1
    ARF will not be loaded.
 
 
 1 spectrum  in use
  
-Spectral Data File: /home/heasoft/ch2-abundance/scripts/abundance/test/converted/ch2_cla_l1_20200529T104516257_20200529T104524257.fits  Spectrum 1
+Spectral Data File: /root/code/ch2-abundance/scripts/abundance/pipeline/../test/converted/ch2_cla_l1_20200529T104516257_20200529T104524257.fits  Spectrum 1
 Net count rate (cts/s) for Spectrum:1  2.720e+02 +/- 5.831e+00
  Assigned to Data Group 1 and Plot Group 1
   Noticed Channels:  1-1024
   Telescope: CHANDRAYAAN-2 Instrument: CLASS  Channel Type: PHA
   Exposure Time: 8 sec
  Using fit statistic: chi
- Using Response (RMF) File            /home/heasoft/ch2-abundance/scripts/abundance/pipeline/test/class_rmf_v1.rmf for Source 1
+ Using Response (RMF) File            /root/code/ch2-abundance/scripts/abundance/pipeline/test/class_rmf_v1.rmf for Source 1
+
+Net count rate (cts/s) for Spectrum:1  6.902e+01 +/- 5.841e+00 (25.4 % total)
+Spectrum 1  Spectral Data File: /root/code/ch2-abundance/scripts/abundance/pipeline/../test/converted/ch2_cla_l1_20200529T104516257_20200529T104524257.fits
+Net count rate (cts/s) for Spectrum:1  6.902e+01 +/- 5.841e+00 (25.4 % total)
+ Assigned to Data Group 1 and Plot Group 1
+  Noticed Channels:  1-1024
+  Telescope: CHANDRAYAAN-2 Instrument: CLASS  Channel Type: PHA
+  Exposure Time: 8 sec
+ Using fit statistic: chi
+ Using Background File                /root/code/ch2-abundance/scripts/abundance/pipeline/test/ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits
+  Background Exposure Time: 1780 sec
+ Using Response (RMF) File            /root/code/ch2-abundance/scripts/abundance/pipeline/test/class_rmf_v1.rmf for Source 1
+
+ Spectral data counts: 2176
+ Model predicted rate: 0.0
 
 Net count rate (cts/s) for Spectrum:1  6.902e+01 +/- 5.841e+00 (25.4 % total)
     34 channels (1-34) ignored in spectrum #     1
@@ -26,7 +41,7 @@ Net count rate (cts/s) for Spectrum:1  6.902e+01 +/- 5.841e+00 (25.4 % total)
 WARNING: This gain will make negative energies, you may have too large an offset.
 
 ========================================================================
-Model atable{/home/heasoft/ch2-abundance/scripts/flare_ops/scripts/spectrum/table/t20220417.fits}<1> + xrf_localmodel<2> Source No.: 1   Active/On
+Model atable{/root/code/ch2-abundance/scripts/flare_ops/scripts/spectrum/table/t20220417.fits}<1> + xrf_localmodel<2> Source No.: 1   Active/On
 Model Model Component  Parameter  Unit     Value
  par  comp
    1    1   scatter_modeladdnorm             0.0          +/-  0.0          
@@ -124,72 +139,5 @@ Chi-Squared  |beta|/N    Lvl        2:norm       3:Wt_Fe       4:Wt_Ti       5:W
 4579.67      1.88175       0       24.8386       4.13132      0.953246       6.59036       22.9902       14.1335       4.95025      0.416560       7567.85
 4579.23      1.84602       0       6.80990       4.00720      0.947638       6.59035       22.9984       14.1254       4.93541      0.403464       7589.31
 4578.86      1.8141        0       2.30439       3.88995      0.943080       6.59034       22.9995       14.1101       4.92007      0.391413       7609.44
-4578.52      1.78524       0     0.0523832       3.77895      0.939410       6.59034       23.0000       14.0887       4.90434      0.380305       7628.34
-4578.22      1.75897       0     0.0172060       3.67360      0.936495       6.59034       23.0000       14.0623       4.88832      0.370053       7646.09
-4577.95      1.73508       0    0.00841402       3.57336      0.934219       6.59034       23.0000       14.0317       4.87210      0.360579       7662.79
-4577.71      1.71335       0    0.00401909       3.47771      0.932480       6.59033       23.0000       13.9977       4.85577      0.351812       7678.51
-4577.49      1.69362       0    0.00182209       3.38620      0.931192       6.59033       23.0000       13.9611       4.83938      0.343689       7693.32
-4577.28      1.6757        0   0.000723808       3.29843      0.930279       6.59033       23.0000       13.9223       4.82300      0.336153       7707.29
-4577.1       1.65945       0   0.000174762       3.21404      0.929676       6.59033       23.0000       13.8818       4.80668      0.329152       7720.48
-4576.94      1.64472       0   3.75214e-05       3.13270      0.929327       6.59033       23.0000       13.8401       4.79045      0.322641       7732.93
-==========================================================================================
- Variances and Principal Axes
-                 2        3        4        5        6        7        8        9       11  
- 2.8170E-02|  0.0000   0.0127  -0.1925   0.0109   0.0020   0.0058  -0.0168  -0.9810  -0.0001  
- 1.6825E-01|  0.0000   0.0018  -0.9804   0.0142   0.0047   0.0122   0.0396   0.1919  -0.0001  
- 6.3797E-01|  0.0000   0.1133  -0.0330   0.0599   0.0174   0.0594  -0.9889   0.0259  -0.0005  
- 3.8525E+00|  0.0000   0.3311  -0.0077   0.1720   0.0850  -0.9238  -0.0053   0.0026  -0.0021  
- 2.5059E+01|  0.0000   0.7125   0.0142   0.3769  -0.5101   0.2779   0.1119   0.0093  -0.0059  
- 7.5702E+02|  0.0000   0.4259  -0.0136  -0.9004  -0.0850  -0.0226  -0.0082  -0.0020  -0.0039  
- 3.5449E+05|  0.0000  -0.4340  -0.0144  -0.1174  -0.8513  -0.2551  -0.0869  -0.0059  -0.0138  
- 3.6752E+11|  0.0000  -0.0006   0.0003   0.0025   0.0149   0.0038   0.0011   0.0001  -0.9999  
- 2.0736E+51|  1.0000   0.0000   0.0000   0.0000   0.0000   0.0000   0.0000   0.0000   0.0000  
-------------------------------------------------------------------------------------------
 
-============================================================================================================
-  Covariance Matrix
-        1           2           3           4           5           6           7           8           9   
-   2.074e+51  -4.195e+27   2.193e+27   1.901e+28   1.146e+29   2.954e+28   8.560e+27   5.302e+26  -7.649e+30
-  -4.195e+27   2.122e+05  -6.379e+04  -5.607e+05  -3.304e+06  -8.448e+05  -2.425e+05  -1.500e+04   2.311e+08
-   2.193e+27  -6.379e+04   3.006e+04   2.634e+05   1.565e+06   4.029e+05   1.167e+05   7.255e+03  -1.050e+08
-   1.901e+28  -5.607e+05   2.634e+05   2.309e+06   1.371e+07   3.531e+06   1.022e+06   6.357e+04  -9.200e+08
-   1.146e+29  -3.304e+06   1.565e+06   1.371e+07   8.147e+07   2.098e+07   6.075e+06   3.778e+05  -5.463e+09
-   2.954e+28  -8.448e+05   4.029e+05   3.531e+06   2.098e+07   5.403e+06   1.565e+06   9.731e+04  -1.406e+09
-   8.560e+27  -2.425e+05   1.167e+05   1.022e+06   6.075e+06   1.565e+06   4.532e+05   2.819e+04  -4.068e+08
-   5.302e+26  -1.500e+04   7.255e+03   6.357e+04   3.778e+05   9.731e+04   2.819e+04   1.753e+03  -2.529e+07
-  -7.649e+30   2.311e+08  -1.050e+08  -9.200e+08  -5.463e+09  -1.406e+09  -4.068e+08  -2.529e+07   3.674e+11
-------------------------------------------------------------------------------------------------------------
-
-========================================================================
-Model atable{/home/heasoft/ch2-abundance/scripts/flare_ops/scripts/spectrum/table/t20220417.fits}<1> + xrf_localmodel<2> Source No.: 1   Active/On
-Model Model Component  Parameter  Unit     Value
- par  comp
-   1    1   scatter_modeladdnorm             0.0          frozen
-   2    1   scatter_modelnorm                3.75214E-05  +/-  4.55373E+25  
-   3    2   xrf_localmodelWt_Fe               3.13270      +/-  460.682      
-   4    2   xrf_localmodelWt_Ti               0.929327     +/-  173.372      
-   5    2   xrf_localmodelWt_Ca               6.59033      +/-  1519.54      
-   6    2   xrf_localmodelWt_Si               23.0000      +/-  9026.11      
-   7    2   xrf_localmodelWt_Al               13.8401      +/-  2324.34      
-   8    2   xrf_localmodelWt_Mg               4.79045      +/-  673.173      
-   9    2   xrf_localmodelWt_Na               0.322641     +/-  41.8711      
-  10    2   xrf_localmodelWt_O                45.0000      frozen
-  11    2   xrf_localmodelnorm                7732.93      +/-  6.06158E+05  
-________________________________________________________________________
-
-
-Response Parameters:
-
-========================================================================
-Source No.: 1
-Rpar Spectrum Rmodel   Rpar_name  Unit   Value
-
-   1     1    gain     slope             1.00430      frozen
-   2     1    gain     offset            3.16000E-02  frozen
-________________________________________________________________________
-
-
-Fit statistic  : Chi-Squared                 4576.94     using 121 bins.
-
-Test statistic : Chi-Squared                 4576.94     using 121 bins.
- Null hypothesis probability of 0.00e+00 with 112 degrees of freedom
+*** Warning: User interrupted fit, fit not valid.
