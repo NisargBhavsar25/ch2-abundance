@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import matplotlib.pyplot as plt
 
-def process_spectrum_conv(xmso_path, num_channels=2048, plot=True):
+def process_spectrum_conv(xmso_path, num_channels=2048, plot=True, save_file='channel_sum.png'):
     channel_sums_conv = np.zeros(num_channels)
     channel_sums_unconv = np.zeros(num_channels)
     energies = np.zeros(num_channels)
@@ -36,6 +36,7 @@ def process_spectrum_conv(xmso_path, num_channels=2048, plot=True):
         plt.xticks(np.linspace(min(energies), max(energies), 20))
         plt.xticks(rotation=45)
         plt.ylabel('Sum of Counts')
+        plt.yscale('log')
         plt.title('spectrum_conv')
 
         plt.subplot(1, 2, 2)  # Second subplot
@@ -44,10 +45,11 @@ def process_spectrum_conv(xmso_path, num_channels=2048, plot=True):
         plt.xticks(np.linspace(min(energies), max(energies), 20))
         plt.xticks(rotation=45)
         plt.ylabel('Counts')
+        plt.yscale('log')
         plt.title('spectrum_unconv')
 
         plt.tight_layout()  # Adjust layout to prevent overlap
-        plt.savefig('channel_sums.png')  # Save the figure as a PNG file
+        plt.savefig('discrete.png')  # Save the figure as a PNG file
         plt.close()  
 
 
