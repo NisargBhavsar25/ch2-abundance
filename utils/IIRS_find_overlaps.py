@@ -59,9 +59,8 @@ def overlap(data, upper_left_lat, upper_left_lon, upper_right_lat, upper_right_l
     overlap_count = 0
     pixel_processing_times = []
 
-    # Calculate search radius in degrees (approximately 12 km)
-    # You may need to adjust this value based on your specific needs
-    search_radius = 0.1  # roughly 11km at the equator
+    search_distance_km = 12 
+    search_radius = search_distance_km / 1737.4  # Convert km to radians on the Moon's surface
 
     # Iterate through each pixel
     for i in range(len(data)):
