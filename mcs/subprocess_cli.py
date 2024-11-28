@@ -6,6 +6,8 @@ import subprocess
 from pathlib import Path
 import argparse
 
+errors = []
+
 class XMIMSIMGenerator:
     def __init__(self, csv_path, excitation_file=None):
         self.df = pd.read_csv(csv_path)
@@ -85,8 +87,8 @@ class XMIMSIMGenerator:
         general = ET.SubElement(root, 'general', version='1.0')
         settings = {
             'outputfile': 'test.xmso',
-            'n_photons_interval': '1000',
-            'n_photons_line': '100000',
+            'n_photons_interval': '100',
+            'n_photons_line': '10000',
             'n_interactions_trajectory': '4',
             'comments': ''
         }
@@ -206,7 +208,10 @@ class XMIMSIMProcessor:
 
                     new_output_path.parent.mkdir(parents=True, exist_ok=True)
                     self._modify_output_path(file_path, str(new_output_path))
-                    subprocess.run(['xmimsim', str(file_path), '-v'], check=True)
+                    try:
+                        subprocess.run(['xmimsim', str(file_path), '-v'], check=True)
+                    except Exception as e:
+                        errors.append(f"{e} in {file_path}")
 
     def _modify_output_path(self, file_path: Path, new_output_path: str) -> None:
         with open(file_path, 'r') as file:
@@ -243,6 +248,7 @@ def main():
     
     processor = XMIMSIMProcessor()
     processor.process_directory(xml_dir)
+    print(errors)
 
 if __name__ == "__main__":
     main()
