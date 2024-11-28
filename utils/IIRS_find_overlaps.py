@@ -1,14 +1,3 @@
-qub_file = '/content/drive/MyDrive/Data/IIRS_sample/ch2_iir_nci_20240616T1338294007_d_img_d18/data/calibrated/20240616/ch2_iir_nci_20240616T1338294007_d_img_d18.qub'
-
-def read_qub(qub_file):
-    with rasterio.open(qub_file) as dataset:
-        data = dataset.read()
-    return data
-
-data = read_qub(qub_file)
-
-# FINAL with Balltree
-
 import xml.etree.ElementTree as ET
 import numpy as np
 import pandas as pd
@@ -17,6 +6,8 @@ import matplotlib.pyplot as plt
 import os
 import time
 import pickle
+import glob
+from pathlib import Path
 
 def get_coordinates(xml_file):
     tree = ET.parse(xml_file)
@@ -59,7 +50,7 @@ def overlap(data, upper_left_lat, upper_left_lon, upper_right_lat, upper_right_l
     overlap_count = 0
     pixel_processing_times = []
 
-    search_distance_km = 12 
+    search_distance_km = 12
     search_radius = search_distance_km / 1737.4  # Convert km to radians on the Moon's surface
 
     # Iterate through each pixel
@@ -89,27 +80,27 @@ def overlap(data, upper_left_lat, upper_left_lon, upper_right_lat, upper_right_l
                     if class_name not in class_data:
                         class_data[class_name] = []
 
-                    spectrum_data = ','.join(map(str, data[i, j, :]))
+                    spectrum_data = ','.join(map(str, data[:, j, i]))
                     class_data[class_name].append([current_lat, current_lon, spectrum_data])
                     print(f"Overlap found with: {row['class_file_name']} at (Lat: {csv_lats}, Lon: {csv_lons})")
                     overlap_count += 1
 
-                print(f"Time taken for pixel (i={i}, j={j}): {pixel_time:.6f} seconds")
-
-                if overlap_count % 100 == 0 and overlap_count > 0:
-                    print(f"\nProcessed {overlap_count} overlapping pixels. Saving intermediate results...")
-                    for class_name, data_list in class_data.items():
-                        output_file = os.path.join(output_dir, f"{class_name}.csv")
-                        try:
-                            with open(output_file, 'w') as f:
-                                f.write("pixel_latitude,pixel_longitude,spectrum_data\n")
-                                for item in data_list:
-                                    f.write(f"{item[0]},{item[1]},{item[2]}\n")
-                            print(f"✓ Saved intermediate results for {class_name}")
-                        except Exception as e:
-                            print(f"✗ Error saving intermediate results for {class_name}: {str(e)}")
             pixel_time = time.time() - start_time
-            pixel_processing_times.append(pixel_time) 
+            pixel_processing_times.append(pixel_time)
+            print(f"Time taken for pixel (i={i}, j={j}): {pixel_time:.6f} seconds")
+
+            if overlap_count % 100 == 0 and overlap_count > 0:
+                print(f"\nProcessed {overlap_count} overlapping pixels. Saving intermediate results...")
+                for class_name, data_list in class_data.items():
+                    output_file = os.path.join(output_dir, f"{class_name}.csv")
+                    try:
+                        with open(output_file, 'w') as f:
+                            f.write("pixel_latitude,pixel_longitude,spectrum_data\n")
+                            for item in data_list:
+                                f.write(f"{item[0]},{item[1]},{item[2]}\n")
+                        print(f"✓ Saved intermediate results for {class_name}")
+                    except Exception as e:
+                        print(f"✗ Error saving intermediate results for {class_name}: {str(e)}")
 
     # Final save for any remaining data
     print(f"\n Processing complete. Total overlapping pixels: {overlap_count}")
@@ -128,20 +119,63 @@ def overlap(data, upper_left_lat, upper_left_lon, upper_right_lat, upper_right_l
 
     return list(class_data.keys())
 
-# Main execution
-xml_file = '/content/drive/MyDrive/Data/IIRS_sample/ch2_iir_nci_20240616T1338294007_d_img_d18/data/calibrated/20240616/ch2_iir_nci_20240616T1338294007_d_img_d18.xml'
-qub_file = '/content/drive/MyDrive/Data/IIRS_sample/ch2_iir_nci_20240616T1338294007_d_img_d18/data/calibrated/20240616/ch2_iir_nci_20240616T1338294007_d_img_d18.qub'
-csv_file = '/content/drive/MyDrive/Data/SD_Data_Unique_latlongtime/final_output.csv'
-output_dir = '/content/drive/MyDrive/Data/IIRS_sample/Finding_overlaps_csv'
+def read_qub(qub_file):
+    with rasterio.open(qub_file) as dataset:
+        data = dataset.read()
+    return data
 
-# Load the ball tree
-bt = pickle.load(open('/content/drive/MyDrive/Data/SD_Data_Unique_latlongtime/ball_tree.pkl', 'rb'))
+def process_directory(input_dir, csv_file, output_base_dir, ball_tree_path):
+    """
+    Process all XML and QUB file pairs in the given directory.
 
-os.makedirs(output_dir, exist_ok=True)
-upper_left_lat, upper_left_lon, upper_right_lat, upper_right_lon, lower_left_lat, lower_left_lon, lower_right_lat, lower_right_lon = get_coordinates(xml_file)
+    Parameters:
+    input_dir (str): Path to directory containing XML and QUB files
+    csv_file (str): Path to the CSV file containing reference data
+    output_base_dir (str): Base directory where results will be saved
+    ball_tree_path (str): Path to the pickle file containing the ball tree
+    """
+    # Load the ball tree once
+    bt = pickle.load(open(ball_tree_path, 'rb'))
 
-arr = overlap(data, upper_left_lat, upper_left_lon, upper_right_lat, upper_right_lon,
-             lower_left_lat, lower_left_lon, lower_right_lat, lower_right_lon,
-             csv_file, output_dir, bt)
+    # Find all XML files in the directory
+    xml_files = glob.glob(os.path.join(input_dir, "**/*.xml"), recursive=True)
 
-print(f"Created CSV files for the following classes: {arr}")
+    print(f"Found {len(xml_files)} XML files to process")
+
+    for xml_file in xml_files:
+        try:
+            qub_file = xml_file.replace('.xml', '.qub')
+
+            if not os.path.exists(qub_file):
+                print(f"Warning: No matching QUB file found for {xml_file}")
+                continue
+
+            print(f"\nProcessing file pair:")
+            print(f"XML: {xml_file}")
+            print(f"QUB: {qub_file}")
+
+            file_name = Path(xml_file).stem
+            output_dir = os.path.join(output_base_dir, file_name)
+            os.makedirs(output_dir, exist_ok=True)
+
+            coordinates = get_coordinates(xml_file)
+
+            data = read_qub(qub_file)
+
+            processed_classes = overlap(data, *coordinates, csv_file, output_dir, bt)
+
+            print(f"\nSuccessfully processed {file_name}")
+            print(f"Created CSV files for classes: {processed_classes}")
+
+        except Exception as e:
+            print(f"Error processing {xml_file}: {str(e)}")
+            continue
+
+
+# Example paths - modify these as needed
+input_directory = "/path/to/input/directory"
+csv_file = "/path/to/final_output.csv"
+output_base_directory = "/path/to/output/directory"
+ball_tree_path = "/path/to/ball_tree.pkl"
+
+process_directory(input_directory, csv_file, output_base_directory, ball_tree_path)
