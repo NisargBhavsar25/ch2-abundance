@@ -1,3 +1,14 @@
+qub_file = '/content/drive/MyDrive/Data/IIRS_sample/ch2_iir_nci_20240616T1338294007_d_img_d18/data/calibrated/20240616/ch2_iir_nci_20240616T1338294007_d_img_d18.qub'
+
+def read_qub(qub_file):
+    with rasterio.open(qub_file) as dataset:
+        data = dataset.read()
+    return data
+
+data = read_qub(qub_file)
+
+# FINAL with Balltree
+
 import xml.etree.ElementTree as ET
 import numpy as np
 import pandas as pd
@@ -31,11 +42,6 @@ def get_coordinates(xml_file):
 
     return upper_left_lat, upper_left_lon, upper_right_lat, upper_right_lon, lower_left_lat, lower_left_lon, lower_right_lat, lower_right_lon
 
-def read_qub(qub_file):
-    with rasterio.open(qub_file) as dataset:
-        data = dataset.read()
-    return data
-
 def overlap(data, upper_left_lat, upper_left_lon, upper_right_lat, upper_right_lon,
            lower_left_lat, lower_left_lon, lower_right_lat, lower_right_lon, csv_file, output_dir, bt):
 
@@ -67,7 +73,7 @@ def overlap(data, upper_left_lat, upper_left_lon, upper_right_lat, upper_right_l
 
             # Query ball tree for nearby points
             nearby_indices = bt.query_radius([[current_lat, current_lon]], r=search_radius)[0]
-            
+
             # Only check overlaps with nearby points
             for idx in nearby_indices:
                 row = df.iloc[idx]
@@ -89,23 +95,22 @@ def overlap(data, upper_left_lat, upper_left_lon, upper_right_lat, upper_right_l
                     print(f"Overlap found with: {row['class_file_name']} at (Lat: {csv_lats}, Lon: {csv_lons})")
                     overlap_count += 1
 
-            # End timing for the current pixel
-            pixel_time = time.time() - start_time
-            pixel_processing_times.append(pixel_time)
-            print(f"Time taken for pixel (i={i}, j={j}): {pixel_time:.6f} seconds")
+                print(f"Time taken for pixel (i={i}, j={j}): {pixel_time:.6f} seconds")
 
-            if overlap_count % 100 == 0 and overlap_count > 0:
-                print(f"\nProcessed {overlap_count} overlapping pixels. Saving intermediate results...")
-                for class_name, data_list in class_data.items():
-                    output_file = os.path.join(output_dir, f"{class_name}.csv")
-                    try:
-                        with open(output_file, 'w') as f:
-                            f.write("pixel_latitude,pixel_longitude,spectrum_data\n")
-                            for item in data_list:
-                                f.write(f"{item[0]},{item[1]},{item[2]}\n")
-                        print(f"✓ Saved intermediate results for {class_name}")
-                    except Exception as e:
-                        print(f"✗ Error saving intermediate results for {class_name}: {str(e)}")
+                if overlap_count % 100 == 0 and overlap_count > 0:
+                    print(f"\nProcessed {overlap_count} overlapping pixels. Saving intermediate results...")
+                    for class_name, data_list in class_data.items():
+                        output_file = os.path.join(output_dir, f"{class_name}.csv")
+                        try:
+                            with open(output_file, 'w') as f:
+                                f.write("pixel_latitude,pixel_longitude,spectrum_data\n")
+                                for item in data_list:
+                                    f.write(f"{item[0]},{item[1]},{item[2]}\n")
+                            print(f"✓ Saved intermediate results for {class_name}")
+                        except Exception as e:
+                            print(f"✗ Error saving intermediate results for {class_name}: {str(e)}")
+            pixel_time = time.time() - start_time
+            pixel_processing_times.append(pixel_time) 
 
     # Final save for any remaining data
     print(f"\n Processing complete. Total overlapping pixels: {overlap_count}")
@@ -136,8 +141,8 @@ bt = pickle.load(open('/content/drive/MyDrive/Data/SD_Data_Unique_latlongtime/ba
 os.makedirs(output_dir, exist_ok=True)
 upper_left_lat, upper_left_lon, upper_right_lat, upper_right_lon, lower_left_lat, lower_left_lon, lower_right_lat, lower_right_lon = get_coordinates(xml_file)
 
-arr = overlap(data, upper_left_lat, upper_left_lon, upper_right_lat, upper_right_lon, 
-             lower_left_lat, lower_left_lon, lower_right_lat, lower_right_lon, 
+arr = overlap(data, upper_left_lat, upper_left_lon, upper_right_lat, upper_right_lon,
+             lower_left_lat, lower_left_lon, lower_right_lat, lower_right_lon,
              csv_file, output_dir, bt)
 
 print(f"Created CSV files for the following classes: {arr}")
