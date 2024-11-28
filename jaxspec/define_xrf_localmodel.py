@@ -47,9 +47,9 @@ def xrf_localmodel(energy, parameters, flux):
         
     # Defining some input parameters required for x2abund xrf computation modules
     at_no = np.array([26,22,20,14,13,12,11,8])
-    
+    # els=fe,ti,ca,si,al,mg,na,o]
     weight = list(parameters)
-    
+            # =[hk.get_parameter(f"h_{el}", shape=(), init=jnp.ones) for el in els]
     i_angle = 90.0 - solar_zenith_angle
     e_angle = 90.0 - emiss_angle
     (energy_solar,tmp1_solar,counts_solar) = readcol(solar_file,format='F,F,F')
@@ -85,7 +85,8 @@ def xrf_localmodel(energy, parameters, flux):
     spectrum_xrf_scaled = scaling_factor*spectrum_xrf
     
     for i in range(0, n_ebins):
-        flux[i] = spectrum_xrf_scaled[i]
+        flux[i] = spectrum_xrf_scaled[i] 
+        # convert thid to jax array
     
         
 # Specifying parameter information
