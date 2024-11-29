@@ -22,6 +22,14 @@ class DataHandler:
             "Ca": 0.7,
             "Ti": 0.5
         }
+        self.bounds={
+            "Fe":[0,1],
+            "Al":[0,1],
+            "Mg":[0,1],
+            "Si":[0,1],
+            "Ca":[0,1],
+            "Ti":[0,1],
+                     }
         self.std_dev = std_dev
         self.gaussian_models = {}
         
@@ -60,17 +68,19 @@ class DataHandler:
         # Read FITS file
         try:
             with fits.open(fits_path) as hdul:
-                data = hdul[0].data
-                header = hdul[0].header
+                data = hdul[1].data
+                header = hdul[1].header
                 
                 # Extract energy calibration from header if available
                 # This is a placeholder - adjust according to your FITS file structure
-                energy_start = header.get('ENERGYSTART', 0)
-                energy_step = header.get('ENERGYSTEP', 1)
                 num_channels = len(data)
+                energy_start = 0
+                energy_step = 0.0277
+                print(energy_start,energy_step,num_channels)
                 energies = np.linspace(energy_start, 
                                      energy_start + energy_step * num_channels,
                                      num_channels)
+                
         except Exception as e:
             raise ValueError(f"Error reading FITS file: {str(e)}")
 
@@ -98,7 +108,29 @@ class DataHandler:
         plt.show()
         
         return fig, ax
-
+    def get_fits_data(self,fits_path):
+         with fits.open(fits_path) as hdul:
+                data = hdul[1].data  # Convert to flat numpy array
+                header = hdul[1].header
+                 # Handle structured array data
+                # if isinstance(data, np.recarray) or data.dtype.names is not None:
+                    # Extract channels and counts from structured array
+                channels = data['CHANNEL']
+                counts = data['COUNTS']
+                # else:
+                #     # If it's a simple array, use it directly
+                #     counts = np.array(data).flatten()
+                #     channels = np.arange(len(counts))
+                
+                # Create energy axis
+                num_channels = len(data)
+                energy_start = 0
+                energy_step = 0.0277
+                print(energy_start,energy_step,num_channels)
+                energies = np.linspace(energy_start, 
+                                     energy_start + energy_step * num_channels,
+                                     num_channels)
+                return energies,counts
     def plot_fits_data(self, fits_path, x_range=None):
         """
         Plot the FITS file data as a line curve.
@@ -374,4 +406,4 @@ def test_data_handler(fits_path, x_range=None):
 
 if __name__ == "__main__":
     # Example usage
-    test_data_handler("data\\ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits", x_range=(0, 27)) 
+    test_data_handler("data\\ch2_cla_l1_20210827T210316000_20210827T210332000_1024.fits", x_range=(0, 27)) 

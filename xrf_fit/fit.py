@@ -1,6 +1,7 @@
 import pygad
 import numpy as np
-from .data_handler import DataHandler
+from data_handler import DataHandler
+import matplotlib.pyplot as plt
 
 class GaussianOptimizer:
     def __init__(self, data_handler, fits_path, x_range=None):
@@ -15,14 +16,14 @@ class GaussianOptimizer:
         self.data_handler = data_handler
         self.fits_path = fits_path
         self.x_range = x_range
-        
-        # Get experimental data
-        _, _, self.energies, self.counts = self.data_handler.plot_fits_data(fits_path, x_range)
-        
+   
+        self.energies, self.counts = self.data_handler.get_fits_data(fits_path)
+        print("Energy: ",self.energies,self.counts)
         # Number of parameters to optimize
         self.n_elements = len(self.data_handler.elements)
         # For each element: one amplitude and one sigma
-        self.n_params = self.n_elements * 2
+        self.n_params = self.n_elements * 2+1
+        print("Params: ",self.n_params)
         
         # Initialize GA parameters
         self.init_ga()
@@ -36,20 +37,38 @@ class GaussianOptimizer:
         self.init_range_low = 0.0
         self.init_range_high = 2.0
         self.num_genes = self.n_params
-        
+         # Create gene space with specific ranges for each parameter
+        self.gene_space = []
+        # Amplitude ranges
+        for element in self.data_handler.elements:
+            self.gene_space.append({'low':self.data_handler.bounds[element][0] , 'high': self.data_handler.bounds[element][1]})
+        # Sigma ranges
+        for _ in range(self.n_elements):
+            self.gene_space.append({'low': 0, 'high': 2})
+        self.gene_space.append({'low': 0, 'high': 10000})
         # Define parameters for PyGAD
         self.ga_instance = pygad.GA(
             num_generations=self.num_generations,
+            sol_per_pop=50,
             num_parents_mating=self.num_parents_mating,
             num_genes=self.num_genes,
-            init_range_low=self.init_range_low,
-            init_range_high=self.init_range_high,
+            # init_range_low=self.init_range_low,
+            # init_range_high=self.init_range_high,
+            gene_space=self.gene_space,  # Use gene_space instead of init_range
+
             fitness_func=self.fitness_func,
             mutation_type="random",
-            mutation_percent_genes=10
+            mutation_percent_genes=10,
+            on_generation=self.dispProgress
         )
-    
-    def fitness_func(self, solution, solution_idx):
+    def dispProgress(self,ga_instance):
+                # Update data handler with best parameters
+        print(f"Generation {ga_instance.generations_completed}")
+        print(f"Best fitness: {ga_instance.best_solution()[1]}")
+        self.data_handler.plot_combined_spectrum(self.fits_path,(0,27))
+        
+        
+    def fitness_func(self,ga_instance, solution, solution_idx):
         """
         Fitness function for genetic algorithm.
         
@@ -62,8 +81,8 @@ class GaussianOptimizer:
         """
         # Split solution into amplitudes and sigmas
         amplitudes = solution[:self.n_elements]
-        sigmas = solution[self.n_elements:]
-        
+        sigmas = solution[self.n_elements:-1]
+        scale=solution[-1]
         # Update data handler parameters
         for i, element in enumerate(self.data_handler.elements):
             self.data_handler.set_amplitude(element, amplitudes[i])
@@ -73,12 +92,49 @@ class GaussianOptimizer:
         model_intensity = np.zeros_like(self.energies)
         for element, gaussian in self.data_handler.gaussian_models.items():
             amp = self.data_handler.element_amplitudes[element]
+            # print(gaussian(self.energies),"\n\n\n")
+            count=np.sum(np.isnan(gaussian(self.energies)))
+            if count!=0:
+                print("NULL",element,count)
+
+            # print("ENERGY...",element,np.sum(np.isnan(gaussian(self.energies))),"...ENERGY ....")
             model_intensity += gaussian(self.energies) * amp
+        model_intensity*=scale
         
         # Calculate fitness (negative MSE)
         mse = np.mean((self.counts - model_intensity) ** 2)
+        # print(amp,model_intensity,mse)
         return -mse
     
+    def plot_fitness_history(self):
+        """
+        Plot the fitness history of the genetic algorithm optimization.
+        Shows both best and mean fitness per generation.
+        
+        Returns:
+            tuple: (fig, ax) matplotlib figure and axes objects
+        """
+        fig, ax = plt.subplots(figsize=(10, 6))
+        self.ga_instance.plot_fitness()
+        # Get fitness history
+        # best_solutions = self.ga_instance.best_solutions_fitness
+        # print(self.ga_instance.solutions_fitness)
+        # mean_fitness = [-np.mean(gen_fitness) for gen_fitness in self.ga_instance.solutions_fitness]
+        # generations = range(len(best_solutions))
+        # print(best_solutions,best_solutions,mean_fitness)
+        # # Plot best and mean fitness
+        # ax.plot(generations, -np.array(best_solutions), 'b-', label='Best Fitness', linewidth=2)
+        # ax.plot(generations, mean_fitness, 'r--', label='Mean Fitness', alpha=0.7)
+        
+        # ax.set_xlabel('Generation')
+        # ax.set_ylabel('Fitness (-MSE)')
+        # ax.set_title('Genetic Algorithm Optimization Progress')
+        # ax.grid(True, alpha=0.3)
+        # ax.legend()
+        
+        # plt.tight_layout()
+        return fig, ax
+
     def run_optimization(self):
         """
         Run the genetic algorithm optimization.
@@ -96,6 +152,10 @@ class GaussianOptimizer:
         for i, element in enumerate(self.data_handler.elements):
             self.data_handler.set_amplitude(element, amplitudes[i])
             self.data_handler.gaussian_models[element].std_devs[:] = sigmas[i]
+        
+        # Plot fitness history
+        fig, ax = self.plot_fitness_history()
+        plt.show()
         
         return solution, solution_fitness
     
@@ -134,8 +194,8 @@ def test_optimization(fits_path, x_range=(2, 8)):
     
     # Plot result
     fig, (ax1, ax2) = optimizer.plot_result()
-    
+    plt.savefig("Fitness_plot.png")
     return optimizer
 
 if __name__ == "__main__":
-    test_optimization("path/to/your/file.fits")
+    test_optimization("data\\ch2_cla_l1_20210827T210316000_20210827T210332000_1024.fits")
