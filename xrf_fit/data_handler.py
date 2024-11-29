@@ -18,7 +18,7 @@ class DataHandler:
             "Fe": 1.0,
             "Al": 0.8,
             "Mg": 0.6,
-            "Si": 0.9,
+            "Si": 1,
             "Ca": 0.7,
             "Ti": 0.5
         }
@@ -78,7 +78,7 @@ class DataHandler:
         fig, ax = plt.subplots(figsize=(12, 8))
         
         # Plot FITS data
-        ax.plot(energies, data, 'k-', label='Data', alpha=0.5)
+        ax.plot(data, 'k-', label='Data', alpha=0.5)
         
         # Plot Gaussian models for each element
         for element, model in self.gaussian_models.items():
@@ -110,8 +110,8 @@ class DataHandler:
         Returns:
             tuple: (fig, ax) matplotlib figure and axes objects
         """
-        try:
-            with fits.open(fits_path) as hdul:
+        # try:
+        with fits.open(fits_path) as hdul:
                 data = hdul[1].data  # Convert to flat numpy array
                 header = hdul[1].header
                  # Handle structured array data
@@ -126,24 +126,33 @@ class DataHandler:
                 
                 # Create energy axis
                 num_channels = len(data)
-                energy_start = header.get('ENERGYSTART', 0)
-                energy_step = header.get('ENERGYSTEP', 1)
+                energy_start = 0
+                energy_step = 0.0277
+                print(energy_start,energy_step,num_channels)
                 energies = np.linspace(energy_start, 
                                      energy_start + energy_step * num_channels,
                                      num_channels)
                 
                 # Create plot
                 fig, ax = plt.subplots(figsize=(12, 6))
-                print(data.shape,energies.shape,type(data))
+                # plt.figure(figsize=(10,6))
+                # plt.plot(counts)
+                # plt.title("Line Plot of FITS Image Data")
+                # plt.xlabel("Pixel Index")
+                # plt.ylabel("Intensity (COUNTS)")
+                # plt.grid(True)  # Add grid for clarity
+                # plt.show()
                 # Plot the data
-                ax.plot(channels, counts, '-', color='black', 
+                ax.plot(energies,counts, '-', color='black', 
                        label='XRF Data', linewidth=1.0)
-                
                 # Set plot limits if specified
-                if x_range is not None:
-                    ax.set_xlim(x_range)
+                # if x_range is not None:
+                #     ax.set_xlim(x_range)
                 
                 # Customize plot
+                # ax.set_xticks(np.arange(x_range[0],x_range[1]))  # Use numpy's arange instead
+                # ax.set_xticklabels([str(x) for x in range(x_range[0],x_range[1])])  # Convert labels to strings
+                
                 ax.set_xlabel('Energy (KeV)')
                 ax.set_ylabel('Intensity (counts)')
                 ax.set_title('XRF Spectrum')
@@ -157,8 +166,8 @@ class DataHandler:
                 
                 return fig, ax, energies, data
                 
-        except Exception as e:
-            raise ValueError(f"Error reading or plotting FITS file: {str(e)}")
+        # except Exception as e:
+        #     raise ValueError(f"Error reading or plotting FITS file: {str(e)}")
 
     def plot_combined_spectrum(self, fits_path, x_range=None, normalize=True):
         """
@@ -170,7 +179,7 @@ class DataHandler:
         
         # Get max intensity for normalization if requested
         # max_intensity = np.max(data) if normalize else 1.0
-        
+        # plt.show()
         # Plot Gaussian models
         colors = plt.cm.tab10(np.linspace(0, 1, len(self.elements)))
         for element, model, color in zip(self.elements, self.gaussian_models.values(), colors):
@@ -360,9 +369,9 @@ def test_data_handler(fits_path, x_range=None):
     handler = DataHandler()
     
     # Run individual tests
-    # test_weighted_spectrum(handler, energy_range=x_range if x_range else (0, 27))
+    test_weighted_spectrum(handler, energy_range=x_range if x_range else (0, 27))
     test_combined_plot(handler, fits_path, x_range)
 
 if __name__ == "__main__":
     # Example usage
-    test_data_handler("data\\ch2_cla_l1_20210827T210316000_20210827T210332000_1024.fits", x_range=(0, 27)) 
+    test_data_handler("data\\ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits", x_range=(0, 27)) 
