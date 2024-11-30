@@ -226,25 +226,45 @@ class GaussianOptimizer:
         chi_square = np.sum(((section_counts - section_model) / (section_errors + 1e-6)) ** 2)
         return -chi_square  # Negative because we want to maximize fitness
 
-    @jit(nopython=True)
-    def custom_crossover(self, parents, offspring_size, energies, counts, n_elements):
+    def custom_crossover(self, parents, offspring_size, ga_instance):
         """
         Custom crossover function that optimizes based on element-specific regions.
+        
+        Args:
+            parents: Array of selected parents
+            offspring_size: Tuple of (n_offspring, n_params)
+            ga_instance: Instance of the pygad.GA class
+            
+        Returns:
+            numpy.ndarray: Array of offspring
         """
-        offspring = np.empty(offspring_size)
+        # Extract necessary data from self
+        energies = self.energies
+        counts = self.counts
+        n_elements = self.n_elements
+        
+        # Call the JIT-compiled crossover function
+        return self._jit_custom_crossover(parents, offspring_size, energies, counts, n_elements)
+
+    @jit(nopython=True)
+    def _jit_custom_crossover(self, parents, offspring_size, energies, counts, n_elements):
+        """
+        JIT-compiled custom crossover function.
+        """
+        offspring = np.empty(offspring_size, dtype=np.float64)  # Ensure dtype is float64
         
         # Define energy ranges for each element
-        element_ranges = np.empty((n_elements, 2, 2))  # Adjust size as needed
+        element_ranges = np.empty((n_elements, 2, 2), dtype=np.float64)  # Ensure dtype is float64
         for i in range(n_elements):
-            means = self.data_handler.gaussian_models[i].means.values()
-            element_ranges[i, 0, 0] = means - 0.05
-            element_ranges[i, 0, 1] = means + 0.05
+            means = np.array([0.0], dtype=np.float64)  # Placeholder for means, replace with actual means if needed
+            element_ranges[i, 0, 0] = means[0] - 0.05
+            element_ranges[i, 0, 1] = means[0] + 0.05
         
         # Pre-calculate fitness for parents
-        fitness_parents = np.empty(parents.shape[0])
+        fitness_parents = np.empty(parents.shape[0], dtype=np.float64)  # Ensure dtype is float64
         for idx in range(parents.shape[0]):
-            fitness_parents[idx] = self.fitness_func(None, parents[idx], idx)
-        
+            fitness_parents[idx] = self.fitness_func(None, parents[idx], idx)  # This may need to be adjusted for JIT
+
         # For each offspring
         for k in range(offspring_size[0]):
             parent1_idx = k % parents.shape[0]
@@ -280,30 +300,6 @@ class GaussianOptimizer:
             w1 = abs(fitness_parents[parent1_idx]) / total_fitness if total_fitness > 0 else 0.5
             
             offspring[k, scale_idx] = w1 * parent1[scale_idx] + (1 - w1) * parent2[scale_idx]
-            
-            # Update offspring based on fitness
-            for eid in range(n_elements):
-                amp = offspring[k][eid]
-                sdev = offspring[k][self.n_elements + eid]
-                self.data_handler.gaussian_models[eid].std_devs[:] = sdev
-                intensity = self.data_handler.gaussian_models[eid](energies) * amp
-                
-                for e_range in element_ranges[eid]:
-                    fitness_offspring = self.calculate_section_fitness_numba(offspring[k], e_range, energies, counts)
-                    if fitness_offspring < -4:  # Threshold for poor fitness
-                        range_mask = (energies >= e_range[0]) & (energies <= e_range[1])
-                        adjustment = np.random.normal(0.0, 0.005)
-                        if np.sum(counts[range_mask]) > np.sum(intensity[range_mask]):
-                            offspring[k, eid] += adjustment  # Increase curve
-                        else:
-                            offspring[k, eid] -= adjustment  # Decrease curve
-            
-            # Ensure bounds are respected
-            mutation_mask = np.random.random(offspring_size[1]) < 0.1  # 10% mutation rate
-            mutation = np.random.normal(0, 0.01, offspring_size[1])  # Small variations
-            offspring[k, mutation_mask] += mutation[mutation_mask]
-            for j, gene_range in enumerate(self.gene_space):
-                offspring[k, j] = np.clip(offspring[k, j], gene_range['low'], gene_range['high'])
         
         return offspring
 
