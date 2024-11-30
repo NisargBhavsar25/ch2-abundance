@@ -4,6 +4,10 @@ import numpy as np
 from conv import convert_to_pha
 from addPHAs import add_phas
 
+"""
+This script merges the PHAs of a given class file into a single PHA file.
+"""
+
 def create_directory_and_file(dir_name, file_name, string_list):
     """
     Creates a directory and writes strings to a text file within it.

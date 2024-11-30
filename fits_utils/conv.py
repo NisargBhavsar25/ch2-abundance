@@ -1,5 +1,9 @@
 from astropy.io import fits
 
+"""
+This script converts a FITS file to a PHA file.
+"""
+
 def convert_to_pha(input_fits, output_pha, txtfile):
     # Read the input FITS file
     with fits.open(input_fits) as hdul:

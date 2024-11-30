@@ -3,6 +3,11 @@ import os
 from conv import convert_to_pha
 from mergeconverted import merge_phas
 
+"""
+This script merges the PHAs of similar flares into a single PHA file.
+"""
+
+
 df = pd.read_csv('grouped.csv')
 no_grps = len(df['group_id'].unique())
 subgroup_count = 0

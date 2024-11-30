@@ -68,6 +68,8 @@ class GaussianSum:
 
     def single_gaussian(self, x, mean, std_dev, amplitude):
         """Calculate a single Gaussian function using scipy.stats.norm."""
+        if std_dev==0:
+            return 0
         return amplitude * norm.pdf(x, mean, std_dev)
 
     def __call__(self, x):
@@ -86,7 +88,26 @@ class GaussianSum:
             result += self.single_gaussian(x, mean, std_dev, amp)
             
         return result
-
+    @staticmethod
+    def calculate_gaussian_sum(x,means, std_devs, amplitudes):
+        """
+        Calculate the sum of Gaussian functions with explicit parameters.
+        
+        Args:
+            x (array-like): Points at which to evaluate the sum of Gaussians
+            means (array-like): Mean values for each Gaussian
+            std_devs (array-like): Standard deviations for each Gaussian
+            amplitudes (array-like): Amplitude values for each Gaussian
+            
+        Returns:
+            array-like: Sum of all Gaussian functions evaluated at x
+        """
+        result = np.zeros_like(x, dtype=float)
+        
+        for mean, std_dev, amp in zip(means, std_devs, amplitudes):
+            result += amp * norm.pdf(x, mean, std_dev)
+            
+        return result
     def plot(self, x_range=(0, 10), num_points=1000):
         """
         Plot the individual Gaussians and their sum versus energy in KeV.

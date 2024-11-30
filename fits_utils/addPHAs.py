@@ -1,5 +1,9 @@
 import subprocess
 
+"""
+This script adds PHAs to a PHA file.
+"""
+
 def addPHAs(infile, outfile):
     cmd = f'addspec {infile} {outfile} false false & exit'
     try:
