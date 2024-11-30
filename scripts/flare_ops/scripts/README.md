@@ -15,7 +15,7 @@ The `xspec` module is crucial as it provides the functionalities necessary for m
 
 ### **Parameters**
 - **Date**: Specifies the date for which data is required.
-- **Level 1 Data**: Indicates the level of data to be used.
+- **Level 1 Data**: Indicates the .raw file that is being used by us
 
 ### **Workflow**
 1. **Start and End Time Calculation**: 
@@ -40,7 +40,7 @@ The `xspec` module is crucial as it provides the functionalities necessary for m
 3. **Spectrum Loading**:
    - Spectrum data is loaded into a `Spectrum` object and plotted.
 4. **Model Creation**:
-   - A model is created and referred to as `m1`.
+   - The model is created and referred to as `m1`of `vvpec + c*table` using the file tbmodels.fits
    - Hyperparameters are adjusted, with some values modified and others unfrozen, particularly for element-specific parameters.
 5. **Plot and Flux Calculation**:
    - Generates spectrum plots for a specified energy range.
@@ -57,7 +57,7 @@ Example usage can be found in the script from lines **348 to 366**.
 
 ## **Segment 4: Auxiliary Functions**
 
-This segment contains additional helper functions, including those required for flux calculation, referenced in **Segment 3**.
+This segment contains additional helper functions, including those required for flux calculation, by default being from 0.1 to 30.1 energy each step of 0.01, referenced in **Segment 3**.
 
 ---
 
