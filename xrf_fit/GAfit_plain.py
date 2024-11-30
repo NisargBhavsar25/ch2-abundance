@@ -2,7 +2,6 @@ import pygad
 import numpy as np
 from data_handler import DataHandler
 import matplotlib.pyplot as plt
-from numba import jit
 
 class GaussianOptimizer:
     def __init__(self, data_handler, fits_path, bkg_path=None, x_range=None):
@@ -211,99 +210,126 @@ class GaussianOptimizer:
         chi_square = np.sum(((section_counts - section_model) / (section_errors+1e-6)) ** 2)
         return -chi_square  # Negative because we want to maximize fitness
     
-    @jit(nopython=True)
-    def calculate_section_fitness_numba(self, solution, e_range, energies, counts):
-        """
-        Calculate fitness (negative chi-square) for a specific energy range using Numba.
-        """
-        model_intensity = self.calculate_model_intensity(solution)
-        range_mask = (energies >= e_range[0]) & (energies <= e_range[1])
-        
-        section_counts = counts[range_mask]
-        section_model = model_intensity[range_mask]
-        section_errors = np.sqrt(np.abs(section_counts))  # Poisson errors
-        
-        chi_square = np.sum(((section_counts - section_model) / (section_errors + 1e-6)) ** 2)
-        return -chi_square  # Negative because we want to maximize fitness
-
-    @jit(nopython=True)
-    def custom_crossover(self, parents, offspring_size, energies, counts, n_elements):
+    def custom_crossover(self, parents, offspring_size, ga_instance):
         """
         Custom crossover function that optimizes based on element-specific regions.
+        
+        Args:
+            parents: Array of selected parents
+            offspring_size: Tuple of (n_offspring, n_params)
+            
+        Returns:
+            numpy.ndarray: Array of offspring
         """
         offspring = np.empty(offspring_size)
         
         # Define energy ranges for each element
-        element_ranges = np.empty((n_elements, 2, 2))  # Adjust size as needed
-        for i in range(n_elements):
-            means = self.data_handler.gaussian_models[i].means.values()
-            element_ranges[i, 0, 0] = means - 0.05
-            element_ranges[i, 0, 1] = means + 0.05
-        
-        # Pre-calculate fitness for parents
-        fitness_parents = np.empty(parents.shape[0])
-        for idx in range(parents.shape[0]):
-            fitness_parents[idx] = self.fitness_func(None, parents[idx], idx)
+        element_ranges = {}
+        for element, gaussian in self.data_handler.gaussian_models.items():
+            # Get mean energies for this element
+            means = list(gaussian.means.values())
+            # Create range around means (±0.5 keV for example)
+            element_ranges[element] = [(e - 0.05, e + 0.05) for e in means]
         
         # For each offspring
         for k in range(offspring_size[0]):
+            # Select two parents
             parent1_idx = k % parents.shape[0]
             parent2_idx = (k + 1) % parents.shape[0]
             
             parent1 = parents[parent1_idx]
             parent2 = parents[parent2_idx]
-            offspring[k] = parent1.copy()  # Initialize offspring with parent1's genes
+            
+            # Initialize offspring with parent1's genes
+            offspring[k] = parent1.copy()
             
             # For each element
-            for i in range(n_elements):
+            for i, element in enumerate(self.data_handler.elements):
+                # Get amplitude and sigma indices for this element
                 amp_idx = i
-                sigma_idx = i + n_elements
+                sigma_idx = i + self.n_elements
                 
                 # Calculate fitness for each parent in each energy range for this element
-                total_fitness_p1 = 0.0
-                total_fitness_p2 = 0.0
+                total_fitness_p1 = 0
+                total_fitness_p2 = 0
                 
-                for e_range in element_ranges[i]:
-                    total_fitness_p1 += self.calculate_section_fitness_numba(parent1, e_range, energies, counts)
-                    total_fitness_p2 += self.calculate_section_fitness_numba(parent2, e_range, energies, counts)
+                for e_range in element_ranges[element]:
+                    # Create temporary solutions with just this element's parameters
+                    temp_sol1 = parent1.copy()
+                    temp_sol2 = parent2.copy()
+                    
+                    # Calculate fitness for each parent in this range
+                    fitness_p1 = self.calculate_section_fitness(temp_sol1, e_range)
+                    fitness_p2 = self.calculate_section_fitness(temp_sol2, e_range)
+                    
+                    total_fitness_p1 += fitness_p1
+                    total_fitness_p2 += fitness_p2
                 
                 # Choose better parent's parameters for this element
                 if total_fitness_p2 > total_fitness_p1:
-                    offspring[k, amp_idx] = parent2[amp_idx] * (1 + np.random.normal(0, 0.01))
+                    # Only take amplitude from better parent
+                    offspring[k, amp_idx] = parent2[amp_idx]
+                    # offspring[k, amp_idx]+=np.random.normal(0, 0.01)
+                    offspring[k, amp_idx] *= (1 + np.random.normal(0, 0.01))
+
+                    # For sigma, do standard crossover (average of parents with random weight)
                     crossover_weight = np.random.random()
                     offspring[k, sigma_idx] = (crossover_weight * parent1[sigma_idx] + 
-                                                (1 - crossover_weight) * parent2[sigma_idx])
+                                            (1 - crossover_weight) * parent2[sigma_idx])
             
             # Handle scale parameter (last parameter)
             scale_idx = -1
-            total_fitness = abs(fitness_parents[parent1_idx]) + abs(fitness_parents[parent2_idx])
-            w1 = abs(fitness_parents[parent1_idx]) / total_fitness if total_fitness > 0 else 0.5
+            # Calculate weights based on parents' fitness values
             
-            offspring[k, scale_idx] = w1 * parent1[scale_idx] + (1 - w1) * parent2[scale_idx]
+            fitness_p1 = self.fitness_func(None, parent1, parent1_idx)
+            fitness_p2 = self.fitness_func(None, parent2, parent2_idx)
             
-            # Update offspring based on fitness
-            for eid in range(n_elements):
-                amp = offspring[k][eid]
-                sdev = offspring[k][self.n_elements + eid]
-                self.data_handler.gaussian_models[eid].std_devs[:] = sdev
-                intensity = self.data_handler.gaussian_models[eid](energies) * amp
+            # Convert fitness values to weights (ensure positive)
+            total_fitness = abs(fitness_p1) + abs(fitness_p2)
+            if total_fitness > 0:
+                w1 = abs(fitness_p1) / total_fitness
+            else:
+                w1 = 0.5  # Equal weights if both fitnesses are zero
                 
-                for e_range in element_ranges[eid]:
-                    fitness_offspring = self.calculate_section_fitness_numba(offspring[k], e_range, energies, counts)
-                    if fitness_offspring < -4:  # Threshold for poor fitness
-                        range_mask = (energies >= e_range[0]) & (energies <= e_range[1])
-                        adjustment = np.random.normal(0.0, 0.005)
-                        if np.sum(counts[range_mask]) > np.sum(intensity[range_mask]):
-                            offspring[k, eid] += adjustment  # Increase curve
-                        else:
-                            offspring[k, eid] -= adjustment  # Decrease curve
+            # Weighted average of scale parameters
+            offspring[k, scale_idx] = w1 * parent1[scale_idx] + (1-w1) * parent2[scale_idx]
             
+            
+            # eid=0
+            # for element, e_ranges in element_ranges.items():
+            #     amp=offspring[k][eid]
+            #     sdev=offspring[k][self.n_elements+eid]
+            #     self.data_handler.gaussian_models[element].std_devs[:] = sdev
+            #     intensity = self.data_handler.gaussian_models[element](self.energies)*amp
+            #     # print(element,amp,sdev)
+            #     # intensities=self.calculate_model_intensity(offspring[k])
+            #     # print("itensities:",intensity)
+            #     for e_range in e_ranges:
+            #         # Calculate fitness for the offspring in this range
+            #         fitness_offspring = self.calculate_section_fitness(offspring[k], e_range)
+            #         # Identify poor fitness values
+            #         if fitness_offspring < -4:  # Assuming 0.5 is the threshold for poor fitness
+            #             range_mask = (self.energies >= e_range[0]) & (self.energies <= e_range[1])
+            #             # print(np.where(range_mask),"MASK",fitness_offspring)
+            #             if sum(self.counts[np.where(range_mask)])>sum(intensity[np.where(range_mask)]):
+            #                 # print("max",max(intensity[range_mask]))
+            #             # Modify the offspring's value based on the intended curve
+            #             # if intended_curve:
+            #                 # Add a positive value to increase the curve
+            #                 offspring[k, eid]*= (1+np.random.normal(0.0, 0.05))  # Randomly add a small positive value
+            #             else:
+            #                 # Subtract a positive value to decrease the curve
+            #                 offspring[k, eid] *= (1-np.random.normal(0.0, 0.05))  # Randomly subtract a small positive value
+            #     eid+=1
             # Ensure bounds are respected
+            # Add small random variations (local search)
             mutation_mask = np.random.random(offspring_size[1]) < 0.1  # 10% mutation rate
             mutation = np.random.normal(0, 0.01, offspring_size[1])  # Small variations
             offspring[k, mutation_mask] += mutation[mutation_mask]
             for j, gene_range in enumerate(self.gene_space):
-                offspring[k, j] = np.clip(offspring[k, j], gene_range['low'], gene_range['high'])
+                offspring[k, j] = min(gene_range['high'], 
+                                    max(gene_range['low'], 
+                                        offspring[k, j]))
         
         return offspring
 

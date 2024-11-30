@@ -161,6 +161,34 @@ class ScipyOptimizer:
 
         return fig, (ax1, ax2)
 
+    def fit_from_files(self, fits_path, bkg_path=None, x_range=None, method='leastsq'):
+        """
+        Fit the data from the provided FITS and background FITS files.
+        
+        Args:
+            fits_path (str): Path to the FITS file to fit.
+            bkg_path (str, optional): Path to the background FITS file (default is None).
+            x_range (tuple, optional): Energy range (min_kev, max_kev) to fit (default is None).
+            method (str): Optimization method ('leastsq', 'levenberg', etc.).
+        
+        Returns:
+            tuple: (amplitudes, sigmas) - Optimized element amplitudes and sigmas.
+        """
+        # Initialize optimizer with the provided paths
+        self.fits_path = fits_path
+        self.bkg_path = bkg_path
+        self.x_range = x_range
+        self.method = method
+        
+        # Run optimization
+        solution, _ = self.run_optimization()
+        
+        # Extract amplitudes and sigmas
+        amplitudes = solution[:self.n_elements]
+        sigmas = solution[self.n_elements:-1]  # Assuming the last parameter is scale
+        
+        return amplitudes, sigmas
+
 def test_optimization(fits_path, bkg_path, method='leastsq', x_range=(0, 27)):
     """Test function to demonstrate the optimization."""
     handler = DataHandler(bkg_path=bkg_path)
