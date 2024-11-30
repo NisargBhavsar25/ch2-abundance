@@ -5,22 +5,23 @@ from gauss import GaussianSum
 import os
 
 class DataHandler:
-    def __init__(self, std_dev=0.1):
+    def __init__(self, bkg_path,std_dev=0.1):
         """
         Initialize DataHandler with a list of elements and their amplitudes.
         
         Args:
             std_dev (float): Standard deviation for Gaussian peaks
         """
-        self.elements = ["Fe", "Al", "Mg", "Si", "Ca", "Ti"]
+        self.elements = ["Fe", "Al", "Mg", "Si", "Ca", "Ti","O"]
         # Initial amplitudes - can be adjusted based on expected abundances
         self.element_amplitudes = {
-            "Fe": 1.0,
-            "Al": 0.8,
-            "Mg": 0.6,
+            "Fe": 0.1,
+            "Al": 0.2,
+            "Mg": 0.1,
             "Si": 1,
-            "Ca": 0.7,
-            "Ti": 0.5
+            "Ca": 0.1,
+            "Ti": 0.001,
+            'O':0.8
         }
         self.bounds={
             "Fe":[0,1],
@@ -29,10 +30,12 @@ class DataHandler:
             "Si":[0,1],
             "Ca":[0,1],
             "Ti":[0,1],
+            "O":[0,1],
                      }
         self.std_dev = std_dev
+        self.scale=100
         self.gaussian_models = {}
-        
+        self.bkg_path=bkg_path
         # Create GaussianSum objects for each element
         for element in self.elements:
             try:
@@ -126,22 +129,24 @@ class DataHandler:
                 num_channels = len(data)
                 energy_start = 0
                 energy_step = 0.0277
-                print(energy_start,energy_step,num_channels)
+                # print(energy_start,energy_step,num_channels)
                 energies = np.linspace(energy_start, 
                                      energy_start + energy_step * num_channels,
                                      num_channels)
                 return energies,counts
-    def plot_fits_data(self, fits_path, x_range=None):
+    def plot_fits_data(self, fits_path, bkg_file=None, x_range=None):
         """
         Plot the FITS file data as a line curve.
         
         Args:
             fits_path (str): Path to the FITS file
+            bkg_file (str, optional): Path to the background FITS file
             x_range (tuple, optional): (min_energy, max_energy) in KeV to plot
             
         Returns:
-            tuple: (fig, ax) matplotlib figure and axes objects
+            tuple: (fig, ax, energies, data) matplotlib figure and axes objects, energies array, and data
         """
+        
         # try:
         with fits.open(fits_path) as hdul:
                 data = hdul[1].data  # Convert to flat numpy array
@@ -175,8 +180,17 @@ class DataHandler:
                 # plt.grid(True)  # Add grid for clarity
                 # plt.show()
                 # Plot the data
-                ax.plot(energies,counts, '-', color='black', 
+                ax.plot(energies, counts, '-', color='black', 
                        label='XRF Data', linewidth=1.0)
+                
+                # Plot background data if provided
+                if bkg_file:
+                    with fits.open(bkg_file) as hdul:
+                        bkg_data = hdul[1].data
+                        bkg_counts = bkg_data['COUNTS']
+                        ax.plot(energies, bkg_counts, '-', color='red', 
+                               label='Background', linewidth=1.0, alpha=0.6)
+                
                 # Set plot limits if specified
                 # if x_range is not None:
                 #     ax.set_xlim(x_range)
@@ -201,14 +215,30 @@ class DataHandler:
         # except Exception as e:
         #     raise ValueError(f"Error reading or plotting FITS file: {str(e)}")
 
-    def plot_combined_spectrum(self, fits_path, x_range=None, normalize=True):
+    def plot_combined_spectrum(self, fits_path, x_range=None, name="", normalize=True, bkg_file=None):
         """
         Modified version of combined spectrum plot using the new FITS plotting function.
+        
+        Args:
+            fits_path (str): Path to the FITS file
+            x_range (tuple, optional): Energy range to plot
+            name (str): Name prefix for saved plot
+            normalize (bool): Whether to normalize intensities
+            bkg_file (str, optional): Path to background FITS file
         """
         # First get the FITS data
-        fig, ax1, energies, data = self.plot_fits_data(fits_path, x_range)
+        fig, ax1, energies, data = self.plot_fits_data(fits_path, bkg_file=bkg_file, x_range=x_range)
         ax2 = ax1.twinx()
+        ax3 = ax2.twinx()
         
+        # # Plot background data if provided
+        # if bkg_file:
+        #     with fits.open(bkg_file) as hdul:
+        #         bkg_data = hdul[1].data
+        #         bkg_counts = bkg_data['COUNTS']
+        #         ax1.plot(energies, bkg_counts, '-', color='lightgray', 
+        #                 label='Background', linewidth=1.0, alpha=0.5)
+
         # Get max intensity for normalization if requested
         # max_intensity = np.max(data) if normalize else 1.0
         # plt.show()
@@ -217,6 +247,7 @@ class DataHandler:
         for element, model, color in zip(self.elements, self.gaussian_models.values(), colors):
             amplitude = self.element_amplitudes[element]
             y = model(energies) * amplitude
+            
             # if normalize:
             #     y = y * (max_intensity / np.max(y))
             ax2.plot(energies, y, '--', 
@@ -252,21 +283,71 @@ class DataHandler:
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax1.legend(lines1 + lines2, labels1 + labels2, 
                   loc='upper right', bbox_to_anchor=(1.15, 1.0))
-        
+        intensity=self.calculate_model_intensity()
+        ax3.plot(energies, intensity, label=f'with noise (amp={amplitude:.2f})', alpha=0.7)
         # Save plot
         fits_name = os.path.splitext(os.path.basename(fits_path))[0]
         range_str = f'_{x_range[0]}-{x_range[1]}keV' if x_range else ''
-        self.save_plot(fig, f'combined_spectrum_{fits_name}{range_str}.png')
+        self.save_plot(fig, f'{name}_combined_spectrum_{fits_name}{range_str}.png')
         
         return fig, (ax1, ax2)
 
-    def generate_spectrum(self, energy_range=(0, 10), num_bins=1000):
+    def add_background(self, background_fits_path, energies, spectrum):
+        """
+        Add background noise from a reference FITS file to a spectrum.
+        
+        Args:
+            background_fits_path (str): Path to the background FITS file
+            energies (np.array): Energy values for the spectrum
+            spectrum (np.array): Intensity values of the original spectrum
+            
+        Returns:
+            np.array: New spectrum with background added
+        """
+        # Get background data
+        bg_energies, bg_counts = self.get_fits_data(background_fits_path)
+        
+        # Ensure the background data matches the spectrum energy points
+        # by interpolating the background counts
+        bg_interpolated = np.interp(energies, bg_energies, bg_counts)
+        
+        # Add the interpolated background to the spectrum
+        spectrum_with_background = spectrum + bg_interpolated
+        
+        return spectrum_with_background
+    def calculate_model_intensity(self):
+                # Generate model spectrum
+        energy_range=(0,27)
+        num_bins=1024
+        self.energies = np.linspace(energy_range[0], energy_range[1], num_bins)
+
+        scale=self.scale
+
+        model_intensity = np.zeros_like(self.energies)
+        for element, gaussian in self.gaussian_models.items():
+            amp = self.element_amplitudes[element]
+            # print(gaussian(self.energies),"\n\n\n")
+            count=np.sum(np.isnan(gaussian(self.energies)))
+            if count!=0:
+                print("NULL",element,count)
+                
+
+            # print("ENERGY...",element,np.sum(np.isnan(gaussian(self.energies))),"...ENERGY ....")
+            model_intensity += gaussian(self.energies) * amp
+        model_intensity*=scale
+        # model_intensity=self.add_background(self.bkg_path,self.energies,model_intensity)
+        return model_intensity
+
+
+    def generate_spectrum(self, energy_range=(0, 27), num_bins=1024, background_fits=None):
         """
         Generate a complete spectrum by summing all weighted Gaussian models.
+        Optional background can be added from a FITS file.
         
         Args:
             energy_range (tuple): (min_energy, max_energy) in KeV
             num_bins (int): Number of bins for the energy axis
+            background_fits (str, optional): Path to background FITS file
             
         Returns:
             tuple: (energies, intensities) arrays for the combined spectrum
@@ -289,6 +370,13 @@ class DataHandler:
             # Plot individual weighted contributions
             ax2.plot(energies, element_intensity, '--', 
                     label=f'{element} (amp={amplitude:.2f})', alpha=0.7)
+        
+        # Add background if specified
+        if background_fits:
+            total_intensity = self.add_background(background_fits, energies, total_intensity)
+            ax1.set_title('Combined Weighted Spectrum with Background')
+        else:
+            ax1.set_title('Combined Weighted Spectrum')
         
         # Plot combined spectrum
         ax1.plot(energies, total_intensity, 'k-', label='Combined Spectrum', linewidth=2)
