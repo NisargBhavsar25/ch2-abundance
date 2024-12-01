@@ -1,3 +1,4 @@
+# import necessary libraries
 import pandas as pd
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
@@ -6,9 +7,12 @@ import subprocess
 from pathlib import Path
 import argparse
 
+# list to keep note of errors
 errors = []
 
+# class to generate .xmsi files
 class XMIMSIMGenerator:
+    # initialise with the csv for weight fractions and txt file for energy and intensity values
     def __init__(self, csv_path, excitation_file=None):
         self.df = pd.read_csv(csv_path)
         self.excitation_settings = self._process_excitation_file(excitation_file)
@@ -45,6 +49,7 @@ class XMIMSIMGenerator:
             'thickness': '1'
         }]
 
+    # creates a new directory in the current directory to save the .xmsi files
     def generate_xml_files(self, output_dir='xmsi_inputs'):
         os.makedirs(output_dir, exist_ok=True)
         
