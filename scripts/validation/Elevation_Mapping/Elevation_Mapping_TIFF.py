@@ -1,9 +1,3 @@
-!pip install rasterio
-from google.colab import drive
-drive.mount('/content/drive')
-
-# Link to Data: https://astrogeology.usgs.gov/search/map/moon_lro_lola_dem_118m
-
 import rasterio
 import matplotlib.pyplot as plt
 
