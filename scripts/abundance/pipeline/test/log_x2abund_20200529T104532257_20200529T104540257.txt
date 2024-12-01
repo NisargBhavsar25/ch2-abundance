@@ -1,0 +1,200 @@
+***Warning: Detected response matrix energy bin value = 0 (or neg).
+     XSPEC will instead use small finite value (response file will not be altered).
+
+***Error while attempting to read ARF file /root/code/ch2-abundance/scripts/abundance/pipeline/test/class_arf_v1.arf EXTVERS number 1
+   ARF will not be loaded.
+
+
+1 spectrum  in use
+ 
+Spectral Data File: /root/code/ch2-abundance/scripts/abundance/pipeline/../test/converted/ch2_cla_l1_20200529T104532257_20200529T104540257.fits  Spectrum 1
+Net count rate (cts/s) for Spectrum:1  4.280e+02 +/- 7.314e+00
+ Assigned to Data Group 1 and Plot Group 1
+  Noticed Channels:  1-1024
+  Telescope: CHANDRAYAAN-2 Instrument: CLASS  Channel Type: PHA
+  Exposure Time: 8 sec
+ Using fit statistic: chi
+ Using Response (RMF) File            /root/code/ch2-abundance/scripts/abundance/pipeline/test/class_rmf_v1.rmf for Source 1
+
+Net count rate (cts/s) for Spectrum:1  2.250e+02 +/- 7.322e+00 (52.6 % total)
+Spectrum 1  Spectral Data File: /root/code/ch2-abundance/scripts/abundance/pipeline/../test/converted/ch2_cla_l1_20200529T104532257_20200529T104540257.fits
+Net count rate (cts/s) for Spectrum:1  2.250e+02 +/- 7.322e+00 (52.6 % total)
+ Assigned to Data Group 1 and Plot Group 1
+  Noticed Channels:  1-1024
+  Telescope: CHANDRAYAAN-2 Instrument: CLASS  Channel Type: PHA
+  Exposure Time: 8 sec
+ Using fit statistic: chi
+ Using Background File                /root/code/ch2-abundance/scripts/abundance/pipeline/test/ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits
+  Background Exposure Time: 1780 sec
+ Using Response (RMF) File            /root/code/ch2-abundance/scripts/abundance/pipeline/test/class_rmf_v1.rmf for Source 1
+
+ Spectral data counts: 3424
+ Model predicted rate: 0.0
+
+Net count rate (cts/s) for Spectrum:1  2.250e+02 +/- 7.322e+00 (52.6 % total)
+    34 channels (1-34) ignored in spectrum #     1
+   869 channels (156-1024) ignored in spectrum #     1
+
+
+...Replacing previous model component which had name: xrf_localmodel
+
+WARNING: This gain will make negative energies, you may have too large an offset.
+
+========================================================================
+Model atable{/root/code/ch2-abundance/scripts/flare_ops/scripts/spectrum/table/t20220417.fits}<1> + xrf_localmodel<2> Source No.: 1   Active/On
+Model Model Component  Parameter  Unit     Value
+ par  comp
+   1    1   scatter_modeladdnorm             0.0          +/-  0.0          
+   2    1   scatter_modelnorm                1.00000      +/-  0.0          
+   3    2   xrf_localmodelWt_Fe               5.00000      +/-  0.0          
+   4    2   xrf_localmodelWt_Ti               1.00000      +/-  0.0          
+   5    2   xrf_localmodelWt_Ca               9.00000      +/-  0.0          
+   6    2   xrf_localmodelWt_Si               21.0000      +/-  0.0          
+   7    2   xrf_localmodelWt_Al               14.0000      +/-  0.0          
+   8    2   xrf_localmodelWt_Mg               5.00000      +/-  0.0          
+   9    2   xrf_localmodelWt_Na               0.500000     +/-  0.0          
+  10    2   xrf_localmodelWt_O                45.0000      +/-  0.0          
+  11    2   xrf_localmodelnorm                1.00000      +/-  0.0          
+________________________________________________________________________
+
+
+Fit statistic  : Chi-Squared                 2337.65     using 121 bins.
+
+Test statistic : Chi-Squared                 2337.65     using 121 bins.
+ Null hypothesis probability of 0.00e+00 with 110 degrees of freedom
+ Current data and model not fit yet.
+
+Fit statistic  : Chi-Squared                 2337.65     using 121 bins.
+
+Test statistic : Chi-Squared                 2337.65     using 121 bins.
+ Null hypothesis probability of 0.00e+00 with 110 degrees of freedom
+ Current data and model not fit yet.
+
+Fit statistic  : Chi-Squared                 2337.65     using 121 bins.
+
+Test statistic : Chi-Squared                 2337.65     using 121 bins.
+ Null hypothesis probability of 0.00e+00 with 111 degrees of freedom
+ Current data and model not fit yet.
+
+Fit statistic  : Chi-Squared                 2337.65     using 121 bins.
+
+Test statistic : Chi-Squared                 2337.65     using 121 bins.
+ Null hypothesis probability of 0.00e+00 with 112 degrees of freedom
+ Current data and model not fit yet.
+
+Fit statistic  : Chi-Squared                 2337.65     using 121 bins.
+
+Test statistic : Chi-Squared                 2337.65     using 121 bins.
+ Null hypothesis probability of 0.00e+00 with 113 degrees of freedom
+ Current data and model not fit yet.
+
+Fit statistic  : Chi-Squared                 2337.65     using 121 bins.
+
+Test statistic : Chi-Squared                 2337.65     using 121 bins.
+ Null hypothesis probability of 0.00e+00 with 113 degrees of freedom
+ Current data and model not fit yet.
+
+Fit statistic  : Chi-Squared                 2337.65     using 121 bins.
+
+Test statistic : Chi-Squared                 2337.65     using 121 bins.
+ Null hypothesis probability of 0.00e+00 with 113 degrees of freedom
+ Current data and model not fit yet.
+
+Fit statistic  : Chi-Squared                 2337.65     using 121 bins.
+
+Test statistic : Chi-Squared                 2337.65     using 121 bins.
+ Null hypothesis probability of 0.00e+00 with 113 degrees of freedom
+ Current data and model not fit yet.
+
+Fit statistic  : Chi-Squared                 2337.65     using 121 bins.
+
+Test statistic : Chi-Squared                 2337.65     using 121 bins.
+ Null hypothesis probability of 0.00e+00 with 112 degrees of freedom
+ Current data and model not fit yet.
+
+Fit statistic  : Chi-Squared                 2337.65     using 121 bins.
+
+Test statistic : Chi-Squared                 2337.65     using 121 bins.
+ Null hypothesis probability of 0.00e+00 with 112 degrees of freedom
+ Current data and model not fit yet.
+
+Fit statistic  : Chi-Squared                 2337.65     using 121 bins.
+
+Test statistic : Chi-Squared                 2337.65     using 121 bins.
+ Null hypothesis probability of 0.00e+00 with 112 degrees of freedom
+ Current data and model not fit yet.
+
+Fit statistic  : Chi-Squared                 2337.65     using 121 bins.
+
+Test statistic : Chi-Squared                 2337.65     using 121 bins.
+ Null hypothesis probability of 0.00e+00 with 112 degrees of freedom
+ Current data and model not fit yet.
+Parameter delta values for fits will now be 0.01 * parValue
+                                   Parameters
+Chi-Squared  |beta|/N    Lvl        2:norm       3:Wt_Fe       4:Wt_Ti       5:Wt_Ca       6:Wt_Si       7:Wt_Al       8:Wt_Mg       9:Wt_Na       11:norm
+1616.89      6.86426       0       2910.17       2.47920      0.891420       7.55931       22.4885       14.6726       4.10299      0.575075       25284.7
+1602.58      10.008        0       270.978       1.13582      0.790844       7.38220       22.9602       14.8494       3.55759      0.586652       26235.5
+1590.71      11.278        0       105.798      0.796000      0.715081       7.55783       22.9948       14.9470       3.21461      0.581535       26921.5
+1583.8       11.3756       0       23.3881      0.626287      0.662233       7.75064       22.9986       14.9856       3.00366      0.574775       27511.6
+1581.46      11.3763       0       2.82705      0.619183      0.626463       8.01961       22.9993       14.9966       3.00003      0.569076       28014.3
+==========================================================================================
+ Variances and Principal Axes
+                 2        3        4        5        6        7        8        9       11  
+ 5.9274E-03|  0.0000   0.0187  -0.2365   0.0128   0.0026   0.0033  -0.0061  -0.9713  -0.0000  
+ 2.0256E-02|  0.0000  -0.0004  -0.9714   0.0068   0.0034   0.0042   0.0172   0.2365  -0.0000  
+ 2.7291E-01|  0.0000   0.1498  -0.0135   0.0774   0.0207   0.0183  -0.9851   0.0135  -0.0002  
+ 2.1616E+00|  0.0000   0.6415   0.0043   0.3267   0.0462  -0.6833   0.1116   0.0127  -0.0011  
+ 6.4300E+00|  0.0000   0.4950   0.0062   0.2516  -0.6084   0.5593   0.0927   0.0111  -0.0013  
+ 5.5574E+02|  0.0000   0.4219  -0.0076  -0.9029  -0.0701  -0.0419  -0.0090  -0.0022  -0.0013  
+ 5.9339E+04|  0.0000  -0.3777  -0.0091  -0.0926  -0.7889  -0.4671  -0.0899  -0.0094  -0.0042  
+ 5.3611E+11|  0.0000  -0.0003   0.0001   0.0008   0.0041   0.0021   0.0003   0.0000  -1.0000  
+ 5.8356E+51|  1.0000   0.0000   0.0000   0.0000   0.0000   0.0000   0.0000   0.0000   0.0000  
+------------------------------------------------------------------------------------------
+
+============================================================================================================
+  Covariance Matrix
+        1           2           3           4           5           6           7           8           9   
+   5.836e+51  -2.602e+27   5.518e+26   7.740e+27   4.018e+28   2.020e+28   3.273e+27   3.190e+26  -9.513e+30
+  -2.602e+27   7.244e+04  -1.038e+04  -1.507e+05  -7.419e+05  -3.693e+05  -5.917e+04  -5.768e+03   1.851e+08
+   5.518e+26  -1.038e+04   1.757e+03   2.532e+04   1.262e+05   6.315e+04   1.018e+04   9.953e+02  -3.065e+07
+   7.740e+27  -1.507e+05   2.532e+04   3.653e+05   1.818e+06   9.094e+05   1.466e+05   1.433e+04  -4.419e+08
+   4.018e+28  -7.419e+05   1.262e+05   1.818e+06   9.068e+06   4.537e+06   7.317e+05   7.152e+04  -2.200e+09
+   2.020e+28  -3.693e+05   6.315e+04   9.094e+05   4.537e+06   2.270e+06   3.662e+05   3.580e+04  -1.100e+09
+   3.273e+27  -5.917e+04   1.018e+04   1.466e+05   7.317e+05   3.662e+05   5.909e+04   5.776e+03  -1.773e+08
+   3.190e+26  -5.768e+03   9.953e+02   1.433e+04   7.152e+04   3.580e+04   5.776e+03   5.647e+02  -1.732e+07
+  -9.513e+30   1.851e+08  -3.065e+07  -4.419e+08  -2.200e+09  -1.100e+09  -1.773e+08  -1.732e+07   5.361e+11
+------------------------------------------------------------------------------------------------------------
+
+========================================================================
+Model atable{/root/code/ch2-abundance/scripts/flare_ops/scripts/spectrum/table/t20220417.fits}<1> + xrf_localmodel<2> Source No.: 1   Active/On
+Model Model Component  Parameter  Unit     Value
+ par  comp
+   1    1   scatter_modeladdnorm             0.0          frozen
+   2    1   scatter_modelnorm                2.82705      +/-  7.63910E+25  
+   3    2   xrf_localmodelWt_Fe               0.619183     +/-  269.155      
+   4    2   xrf_localmodelWt_Ti               0.626463     +/-  41.9210      
+   5    2   xrf_localmodelWt_Ca               8.01961      +/-  604.373      
+   6    2   xrf_localmodelWt_Si               22.9993      +/-  3011.26      
+   7    2   xrf_localmodelWt_Al               14.9966      +/-  1506.73      
+   8    2   xrf_localmodelWt_Mg               3.00003      +/-  243.075      
+   9    2   xrf_localmodelWt_Na               0.569076     +/-  23.7644      
+  10    2   xrf_localmodelWt_O                45.0000      frozen
+  11    2   xrf_localmodelnorm                2.80143E+04  +/-  7.32189E+05  
+________________________________________________________________________
+
+
+Response Parameters:
+
+========================================================================
+Source No.: 1
+Rpar Spectrum Rmodel   Rpar_name  Unit   Value
+
+   1     1    gain     slope             1.00430      frozen
+   2     1    gain     offset            3.16000E-02  frozen
+________________________________________________________________________
+
+
+Fit statistic  : Chi-Squared                 1581.46     using 121 bins.
+
+Test statistic : Chi-Squared                 1581.46     using 121 bins.
+ Null hypothesis probability of 8.12e-258 with 112 degrees of freedom
