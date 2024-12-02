@@ -187,6 +187,9 @@ class XRFSpectrumAnalyzer:
         
         try:
             popt, _ = curve_fit(self.gaussian, x_fit, y_fit, p0=p0)
+            # if sigma is too large, return 0 as amplitude
+            if popt[2] > 0.15:
+                return (0, line_energy, fit_window/5)
             return tuple(popt)
         except RuntimeError:
             print(f"Warning: Failed to fit peak at {line_energy} keV")
