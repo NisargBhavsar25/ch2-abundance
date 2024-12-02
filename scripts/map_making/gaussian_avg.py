@@ -1,13 +1,31 @@
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import pickle
+import os
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
 
 from skimage.draw import polygon
 
 class GaussianArray:
-    def __init__(self, grid_size=(64, 64)):
-        self.grid_size = grid_size
-        self.arr = np.zeros((grid_size[0], grid_size[1], 2))  # Initialize array based on grid_size
+    def __init__(self, grid_size=(64, 64), abundance_map_file = None, coverage_file = None, is_map=False):
+        if is_map:
+            if abundance_map_file is not None and coverage_file is not None:
+                with open(coverage_file, 'rb') as f:
+                    count_map = pickle.load(f)
+                with open(abundance_map_file, 'rb') as f:
+                    abundance_map = pickle.load(f)
+                self.grid_size = abundance_map.shape
+                self.arr = np.zeros((self.grid_size[0], self.grid_size[1], 2))
+                self.arr[:, :, 0] = abundance_map
+                self.arr[:, :, 1] = count_map
+            else:
+                raise ValueError("Abundance map and count file must be provided")
+        else:
+          self.grid_size = grid_size
+          self.arr = np.zeros((grid_size[0], grid_size[1], 2))  # Initialize array based on grid_size
 
     def in_block_or_not(self, img_lat, img_lon, block_lat, block_lon):
         return (block_lat[0] <= min(img_lat) <= block_lat[2] and
@@ -37,7 +55,7 @@ class GaussianArray:
         y = np.arange(0, shape[1], 1, float)
         x, y = np.meshgrid(x, y)
         gauss = (np.exp(-((x - center[0]) ** 2 + (y - center[1]) ** 2) / (2 * sigma ** 2))) / (2 * np.pi * sigma ** 2)
-        return gauss / np.max(gauss)
+        return gauss/np.max(gauss)
 
     def fill_up_the_array(self, img_lat, img_lon, block_lat, block_lon, max_value, target_diagonal=17.625, base_value=2.1739):
         if self.in_block_or_not(img_lat, img_lon, block_lat, block_lon):
@@ -52,6 +70,10 @@ class GaussianArray:
 
             height, width = max_y - min_y + 1, max_x - min_x + 1
             gaussian_values = self.generate_gaussian_distribution((height, width), (height // 2, width // 2), sigma) * max_value
+            
+            if np.isnan(gaussian_values).any():
+                #print("NaN values in gaussian values")
+                return
 
             # Mask the Gaussian to only fit inside the quadrilateral
             rr, cc = polygon(poly_points[:, 0] - min_y, poly_points[:, 1] - min_x, gaussian_values.shape)
@@ -89,7 +111,7 @@ class GaussianArray:
         plt.ylabel('Y-axis')
         plt.show()
     
-    def export_map(self, f_name, dpi=166, resize_fact=1, plt_show=False):
+    def export_map_pkl(self, f_name, dpi=192, resize_fact=1, plt_show=False):
         arr = self.arr[:, :, 0]
         fig = plt.figure(frameon=False)
         fig.set_size_inches(arr.shape[1]/dpi, arr.shape[0]/dpi)
@@ -97,13 +119,15 @@ class GaussianArray:
         ax.set_axis_off()
         fig.add_axes(ax)
         ax.imshow(arr)
-        plt.savefig(f_name, dpi=(dpi * resize_fact))
+        #plt.savefig(f_name, dpi=(dpi * resize_fact))
+        with open(f_name, 'wb') as f:
+            pickle.dump(arr, f)
         if plt_show:
             plt.show()
         else:
             plt.close()
       
-    def export_coverage(self, f_name, dpi=166, resize_fact=1, plt_show=False):
+    def export_coverage(self, f_name, dpi=192, resize_fact=1, plt_show=False):
         arr = self.arr[:, :, 1]
         fig = plt.figure(frameon=False)
         fig.set_size_inches(arr.shape[1]/dpi, arr.shape[0]/dpi)
@@ -111,11 +135,47 @@ class GaussianArray:
         ax.set_axis_off()
         fig.add_axes(ax)
         ax.imshow(arr)
-        plt.savefig(f_name, dpi=(dpi * resize_fact))
+        #plt.savefig(f_name, dpi=(dpi * resize_fact))
+        with open(f_name, 'wb') as f:
+            pickle.dump(arr, f)
         if plt_show:
             plt.show()
         else:
-            plt.close()    
+            plt.close()  
+        
+ 
+
+    def export_map_png(self, f_name, dpi=192, cmap='YlOrRd', resize_fact=1, plt_show=False):
+        arr = self.arr[:, :, 0]  # Assuming this is a 2D array
+        fig = plt.figure(frameon=False)
+        fig.set_size_inches(arr.shape[1] / dpi, arr.shape[0] / dpi)
+        
+        ax = plt.Axes(fig, [0., 0., 1., 1.])
+        ax.set_axis_off()
+        fig.add_axes(ax)
+        
+        # Apply colormap here
+        im = ax.imshow(arr, cmap=cmap)
+        
+        # Specify the folder path in Google Drive
+        drive_folder = '/content/drive/MyDrive/Data/Actual_LPGRS_Maps'
+        
+        # Ensure the folder exists
+        if not os.path.exists(drive_folder):
+            os.makedirs(drive_folder)
+        
+        # Construct the full file path
+        file_path = os.path.join(drive_folder, f_name)
+        
+        # Save the figure with the desired dpi
+        plt.savefig(file_path, dpi=(dpi * resize_fact), bbox_inches='tight', pad_inches=0)
+        
+        if plt_show:
+            plt.show()
+        else:
+            plt.close()
+
+
 
     def check_coverage(self):
         coverage = np.sum(self.arr[:, :, 1] > 0) / np.prod(self.grid_size)
@@ -127,3 +187,50 @@ class GaussianArray:
 # gaussian_array.add_gaussian_box([-20, 20, 25, -30], [-20, -10, 30, 25], [-100, 100, 90, -100], [-100, -80, 70, 100], 4.5, plot=True)
 # gaussian_array.add_gaussian_box([-10, 40, 30, -10], [-25, -10, 30, 30], [-100, 100, 140, -100], [-100, -120, 100, 100], 5.5, plot=True)
 # gaussian_array.add_gaussian_box([-30, 10, 30, -30], [-30, -40, 10, 10], [-100, 80, 80, -100], [-100, -60, 100, 100], 5.5, plot=True)
+
+"""
+Example usage for generating a map from a CSV file:
+
+def generate_map(fits_files, abundance_element, grid_size=(90, 180), abundance_map_file=None, coverage_file=None):
+    # Read the CSV file once and drop rows with NaN in the target abundance element
+    df = pd.read_csv(fits_files)
+    # df = df.dropna(subset=[abundance_element])
+    
+    block_lat = [-90, 90, 90, -90]
+    block_lon = [-180, -180, 180, 180]
+
+    # Initialize the abundance_map if it's None or already has a map/coverage file
+    if abundance_map_file is None and coverage_file is None:
+      abundance_map = GaussianArray(grid_size=grid_size)
+    else:
+      abundance_map = GaussianArray(abundance_map_file=abundance_map_file, coverage_file=coverage_file, is_map=True)
+    
+    # Extract columns that will be used frequently outside of the loop
+    abundance_col = df[abundance_element].values
+    v0_lat = df["MIN_LAT"].values
+    v1_lat = df["MIN_LAT"].values
+    v2_lat = df["MAX_LAT"].values
+    v3_lat = df["MAX_LAT"].values
+    v0_lon = df["MIN_LON"].values
+    v1_lon = df["MAX_LON"].values
+    v2_lon = df["MAX_LON"].values
+    v3_lon = df["MIN_LON"].values
+
+    # Use itertuples for faster row iteration and avoid repeated iloc lookups
+    for i in tqdm(range(df.shape[0]), desc="Processing Rows"):
+        abundance = abundance_col[i]
+        img_lat = [v0_lat[i], v1_lat[i], v2_lat[i], v3_lat[i]]
+        img_lon = [v0_lon[i], v1_lon[i], v2_lon[i], v3_lon[i]]
+        
+        # Add Gaussian box to the map
+        abundance_map.add_gaussian_box(img_lat, img_lon, block_lat, block_lon, abundance)
+
+    # After processing, export the map and coverage data
+    abundance_map.export_map_png(abundance_element + "_winter_map.png", plt_show=True, cmap = 'winter')
+    #abundance_map.export_map_png(abundance_element + "_gry_map1.png", plt_show=True, cmap='gray')
+    #abundance_map.export_map_pkl(abundance_element + "_map1.pkl")
+    #abundance_map.export_coverage(abundance_element + "_count1.pkl")
+
+csv_file_path = '/content/lpgrs_high1_elem_abundance_2deg.csv'
+generate_map(csv_file_path, "W_AL2O3")
+"""
