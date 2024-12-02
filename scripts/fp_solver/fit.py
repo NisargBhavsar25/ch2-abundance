@@ -25,7 +25,8 @@ class XRFAnalyzer:
         
     def analyze_sample(self, 
                       sample_fits: str, 
-                      background_fits: str, 
+                      background_fits: r'scripts\fp_solver\ch2_cla_l1_20230902T064630474_20230902T064638474_BKG.pha', 
+                      use_background: bool = True,
                       plot_results: bool = True) -> Dict[str, float]:
         """
         Perform complete XRF analysis on a sample
@@ -43,7 +44,8 @@ class XRFAnalyzer:
         intensities = self.intensity_analyzer.analyze_spectrum(
             sample_fits,
             background_fits,
-            plot_results=plot_results
+            plot_results=plot_results,
+            use_background=use_background
         )
         print("\nCalculated intensities:")
         for element, intensity in intensities.items():
@@ -101,7 +103,10 @@ def main():
     
     # Set file paths
     # sample_file = input("Enter path to sample FITS file: ")
-    sample_file = r'scripts\fp_solver\ch2_cla_l1_20240221T230106660_20240221T230114659.fits'
+    # sample_file = r'scripts\fp_solver\ch2_cla_l1_20240221T230106660_20240221T230114659.fits'
+    sample_file = r'scripts\fp_solver\ch2_cla_l1_20240222T062907831_20240222T062915831.fits'
+    # sample_file = r'scripts\fp_solver\ch2_cla_l1_20210827T210316000_20210827T210332000_1024.fits'
+    # background_file = r'scripts\fp_solver\ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits'
     background_file = r'scripts\fp_solver\ch2_cla_l1_20230902T064630474_20230902T064638474_BKG.pha'
     # background_file = input("Enter path to background FITS/PHA file: ")
     
@@ -117,7 +122,8 @@ def main():
         concentrations = analyzer.analyze_sample(
             sample_file,
             background_file,
-            plot_results=True
+            plot_results=True,
+            use_background = True
         )
         
         # Save results to file

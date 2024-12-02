@@ -55,6 +55,8 @@ class XRFSpectrumAnalyzer:
                 
                 counts = np.array(data['COUNTS'], dtype=np.float64)
                 
+                if len(counts) == 1024:
+                    counts = np.concatenate((counts, [0] * 1024))
                 # Verify number of channels
                 if len(counts) != self.n_channels:
                     raise ValueError(
@@ -196,7 +198,8 @@ class XRFSpectrumAnalyzer:
     
     def analyze_spectrum(self, 
                         sample_file: str, 
-                        background_file: str,
+                        background_file: r'scripts\fp_solver\ch2_cla_l1_20230902T064630474_20230902T064638474_BKG.pha',
+                        use_background: bool = True,
                         bg_scaling_factor: float = 0.1,
                         plot_results: bool = False) -> Dict[str, float]:
         """
@@ -213,15 +216,17 @@ class XRFSpectrumAnalyzer:
         """
         # Load spectra
         sample_counts = self.load_spectrum(sample_file)
-        background_counts = self.load_spectrum(background_file)
+        if use_background:
+            background_counts = self.load_spectrum(background_file)
         
-        # Subtract background
-        net_counts = self.subtract_background(
-            sample_counts, 
-            background_counts,
-            scaling_factor=bg_scaling_factor
-        )
-        net_counts = sample_counts
+            # Subtract background
+            net_counts = self.subtract_background(
+                sample_counts, 
+                background_counts,
+                scaling_factor=bg_scaling_factor
+            )
+        else:
+            net_counts = sample_counts
         
         # Dictionary to store results
         intensities = {}
@@ -251,8 +256,10 @@ class XRFSpectrumAnalyzer:
                 except ValueError as e:
                     print(f"Warning: {e}")
                     continue
-            
-            intensities[element] = element_intensity
+            if element_intensity > 0:
+                intensities[element] = element_intensity
+            else:
+                intensities[element] = 0
         
         if plot_results:
             plt.xlabel('Energy (keV)')
