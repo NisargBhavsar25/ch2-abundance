@@ -5,13 +5,7 @@ from typing import Dict
 import os
 import sys
 
-# # Add the directory containing your modules to the Python path
-# script_dir = os.path.dirname(os.path.abspath(__file__))
-# project_dir = os.path.dirname(os.path.dirname(script_dir))
-
-# # Add project directory to Python path
-# if project_dir not in sys.path:
-#     sys.path.insert(0, project_dir)
+sys.path.append('E:\ISRO\ch2-abundance\\')
 
 # from scripts.fp_solver.claisse_quintin import XRFConcentrationSolver
 from scripts.fp_solver.claisse_quintin import XRFConcentrationSolver
@@ -24,10 +18,13 @@ class XRFAnalyzer:
         self.concentration_solver = XRFConcentrationSolver()
         
     def analyze_sample(self, 
-                      sample_fits: str, 
-                      background_fits: r'scripts\fp_solver\ch2_cla_l1_20230902T064630474_20230902T064638474_BKG.pha', 
+                      sample_fits: str = r'scripts\fp_solver\ch2_cla_l1_20240221T230106660_20240221T230114659.fits', 
+                      background_fits: str = r'scripts\fp_solver\ch2_cla_l1_20230902T064630474_20230902T064638474_BKG.pha', 
+                      use_y: bool = False,
+                      y_file: np.ndarray = None,
                       use_background: bool = True,
-                      plot_results: bool = True) -> Dict[str, float]:
+                      plot_results: bool = False,
+                      verbose: int = 1) -> Dict[str, float]:
         """
         Perform complete XRF analysis on a sample
         
@@ -40,29 +37,35 @@ class XRFAnalyzer:
             Dictionary of element concentrations
         """
         # Step 1: Calculate intensities
-        print("Calculating intensities...")
+        if verbose == 1:
+            print("Calculating intensities...")
         intensities = self.intensity_analyzer.analyze_spectrum(
             sample_fits,
             background_fits,
             plot_results=plot_results,
-            use_background=use_background
+            use_background=use_background,
+            use_y=use_y,
+            y_file=y_file,
+            verbose=verbose
         )
-        print("\nCalculated intensities:")
-        for element, intensity in intensities.items():
-            print(f"{element}: {intensity:.4f}")
-            
-        # Step 2: Calculate concentrations
-        print("\nCalculating concentrations...")
+        if verbose == 1:
+            print("\nCalculated intensities:")
+            for element, intensity in intensities.items():
+                print(f"{element}: {intensity:.4f}")
+
+            # Step 2: Calculate concentrations
+            print("\nCalculating concentrations...")
         concentrations = self.concentration_solver.analyze_sample(intensities)
         
-        print("\nCalculated concentrations (%):")
-        for element, concentration in concentrations.items():
-            print(f"{element}: {concentration*100:.4f}%")
+        if verbose == 1:
+            print("\nCalculated concentrations (%):")
+            for element, concentration in concentrations.items():
+                print(f"{element}: {concentration*100:.4f}%")
             
         if plot_results:
             self.plot_results(intensities, concentrations)
             
-        return concentrations
+        return intensities, concentrations
     
     def plot_results(self, intensities: Dict[str, float], concentrations: Dict[str, float]):
         """
@@ -119,7 +122,7 @@ def main():
     try:
         # Perform analysis
         print("\nStarting XRF analysis...")
-        concentrations = analyzer.analyze_sample(
+        intensities, concentrations = analyzer.analyze_sample(
             sample_file,
             background_file,
             plot_results=True,

@@ -192,7 +192,7 @@ class XRFSpectrumAnalyzer:
                 return (0, line_energy, fit_window/5)
             return tuple(popt)
         except RuntimeError:
-            print(f"Warning: Failed to fit peak at {line_energy} keV")
+            # print(f"Warning: Failed to fit peak at {line_energy} keV")
             return (0, line_energy, fit_window/5)
     
     def calculate_peak_intensity(self, amplitude: float, sigma: float) -> float:
@@ -203,8 +203,11 @@ class XRFSpectrumAnalyzer:
                         sample_file: str, 
                         background_file: r'scripts\fp_solver\ch2_cla_l1_20230902T064630474_20230902T064638474_BKG.pha',
                         use_background: bool = True,
+                        use_y: bool = False,
+                        y_file: np.ndarray = None,
                         bg_scaling_factor: float = 0.1,
-                        plot_results: bool = False) -> Dict[str, float]:
+                        plot_results: bool = False,
+                        verbose: int = 1) -> Dict[str, float]:
         """
         Analyze XRF spectrum and extract element intensities
         
@@ -218,7 +221,10 @@ class XRFSpectrumAnalyzer:
             Dictionary of element intensities
         """
         # Load spectra
-        sample_counts = self.load_spectrum(sample_file)
+        if use_y:
+            sample_counts = y_file
+        else:
+            sample_counts = self.load_spectrum(sample_file)
         if use_background:
             background_counts = self.load_spectrum(background_file)
         
