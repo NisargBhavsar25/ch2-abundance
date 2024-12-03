@@ -39,7 +39,7 @@ class XRFAnalyzer:
         # Step 1: Calculate intensities
         if verbose == 1:
             print("Calculating intensities...")
-        intensities = self.intensity_analyzer.analyze_spectrum(
+        intensities, uncertanities = self.intensity_analyzer.analyze_spectrum(
             sample_fits,
             background_fits,
             plot_results=plot_results,
@@ -52,6 +52,8 @@ class XRFAnalyzer:
             print("\nCalculated intensities:")
             for element, intensity in intensities.items():
                 print(f"{element}: {intensity:.4f}")
+            for element, uncertanity in uncertanities.items():
+                print(f"{element}: {uncertanity:.4f}")
 
             # Step 2: Calculate concentrations
             print("\nCalculating concentrations...")
@@ -65,7 +67,7 @@ class XRFAnalyzer:
         if plot_results:
             self.plot_results(intensities, concentrations)
             
-        return intensities, concentrations
+        return intensities, concentrations, uncertanities
     
     def plot_results(self, intensities: Dict[str, float], concentrations: Dict[str, float]):
         """
@@ -122,7 +124,7 @@ def main():
     try:
         # Perform analysis
         print("\nStarting XRF analysis...")
-        intensities, concentrations = analyzer.analyze_sample(
+        intensities, concentrations, uncertanity = analyzer.analyze_sample(
             sample_file,
             background_file,
             plot_results=True,

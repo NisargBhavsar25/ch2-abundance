@@ -58,6 +58,8 @@ class GaussianArray:
         return gauss/np.max(gauss)
 
     def fill_up_the_array(self, img_lat, img_lon, block_lat, block_lon, max_value, target_diagonal=17.625, base_value=2.1739):
+        if max_value <= 0:
+            return
         if self.in_block_or_not(img_lat, img_lon, block_lat, block_lon):
             img_lat_indices, img_lon_indices = self.convert_coords_to_indices(img_lat, img_lon, block_lat, block_lon)
             poly_points = np.array([img_lat_indices, img_lon_indices]).T

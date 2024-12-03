@@ -152,7 +152,7 @@ class XRFSpectrumAnalyzer:
     def fit_peak(self, 
                 counts: np.ndarray, 
                 line_energy: float,
-                fit_window: float = 0.15) -> Tuple[float, float, float]:
+                fit_window: float = 0.10) -> Tuple[float, float, float]:
         """
         Fit a Gaussian to a spectral peak
         
@@ -186,14 +186,16 @@ class XRFSpectrumAnalyzer:
         ]
         
         try:
-            popt, _ = curve_fit(self.gaussian, x_fit, y_fit, p0=p0)
+            popt, pcov = curve_fit(self.gaussian, x_fit, y_fit, p0=p0)
+            perr = np.sqrt(np.diag(pcov))
+            uncertanity = perr[2]
             # if sigma is too large, return 0 as amplitude
             if popt[2] > 0.15:
-                return (0, line_energy, fit_window/5)
-            return tuple(popt)
+                return (0, line_energy, fit_window/5, uncertanity)
+            return (popt[0], popt[1], popt[2], uncertanity)
         except RuntimeError:
             # print(f"Warning: Failed to fit peak at {line_energy} keV")
-            return (0, line_energy, fit_window/5)
+            return (0, line_energy, fit_window/5, 0)
     
     def calculate_peak_intensity(self, amplitude: float, sigma: float) -> float:
         """Calculate peak intensity (area under Gaussian)"""
@@ -239,6 +241,7 @@ class XRFSpectrumAnalyzer:
         
         # Dictionary to store results
         intensities = {}
+        uncertanities = {}
         
         if plot_results:
             plt.figure(figsize=(15, 8))
@@ -250,12 +253,14 @@ class XRFSpectrumAnalyzer:
         # Fit peaks for each element
         for element, lines in self.characteristic_lines.items():
             element_intensity = 0
+            element_uncertanity = 0
             
             for line_type, energy in lines.items():
                 try:
-                    amplitude, center, sigma = self.fit_peak(net_counts, energy)
+                    amplitude, center, sigma, uncertanity = self.fit_peak(net_counts, energy)
                     intensity = self.calculate_peak_intensity(amplitude, sigma)
                     element_intensity += intensity
+                    element_uncertanity += uncertanity
                     
                     if plot_results:
                         x_plot = np.linspace(center - 3*sigma, center + 3*sigma, 100)
@@ -269,6 +274,7 @@ class XRFSpectrumAnalyzer:
                 intensities[element] = element_intensity
             else:
                 intensities[element] = 0
+            uncertanities[element] = element_uncertanity
         
         if plot_results:
             plt.xlabel('Energy (keV)')
@@ -278,7 +284,7 @@ class XRFSpectrumAnalyzer:
             plt.grid(True)
             plt.show()
         
-        return intensities
+        return intensities, uncertanities
 
 # Example usage:
 if __name__ == "__main__":
