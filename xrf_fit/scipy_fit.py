@@ -208,12 +208,12 @@ def test_optimization(fits_path, bkg_path, method='leastsq', x_range=(0, 27)):
     
     fig, (ax1, ax2) = optimizer.plot_result(method)
     
-    # plt.show()
-    # plt.savefig(f"Fit_result_{method}.png")
+    plt.show()
+    plt.savefig(f"Fit_{method}.png")
     return optimizer
 
 if __name__ == "__main__":
-    fits_file = "data/ch2_cla_l1_20210827T210316000_20210827T210332000_1024.fits"
+    fits_file = "fits_20/ch2_cla_l1_20240123T033030609_20240123T033038609.fits"
     bkg_file = "data/ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits"
     
     # Test different optimization methods

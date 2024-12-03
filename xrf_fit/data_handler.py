@@ -193,7 +193,7 @@ class DataHandler:
                 
                 # Set plot limits if specified
                 # if x_range is not None:
-                #     ax.set_xlim(x_range)
+                #     ax.set_xlim(x_range) 
                 
                 # Customize plot
                 # ax.set_xticks(np.arange(x_range[0],x_range[1]))  # Use numpy's arange instead
@@ -227,29 +227,31 @@ class DataHandler:
             bkg_file (str, optional): Path to background FITS file
         """
         # First get the FITS data
-        fig, ax1, energies, data = self.plot_fits_data(fits_path, bkg_file=bkg_file, x_range=x_range)
-        ax2 = ax1.twinx()
-        ax3 = ax2.twinx()
-        
-        # # Plot background data if provided
-        # if bkg_file:
-        #     with fits.open(bkg_file) as hdul:
-        #         bkg_data = hdul[1].data
-        #         bkg_counts = bkg_data['COUNTS']
-        #         ax1.plot(energies, bkg_counts, '-', color='lightgray', 
-        #                 label='Background', linewidth=1.0, alpha=0.5)
 
-        # Get max intensity for normalization if requested
-        # max_intensity = np.max(data) if normalize else 1.0
-        # plt.show()
-        # Plot Gaussian models
+    def plot_combined_spectrum(self, fits_path, x_range=None, name="", normalize=True, bkg_file=None):
+        """
+        Modified version of combined spectrum plot using the new FITS plotting function.
+        """
+        # Use plt.subplots to create the figure and axes explicitly
+        fig = plt.figure(figsize=(12, 8))
+        ax1 = fig.add_subplot(111)
+        ax2 = ax1.twinx()
+        
+        # Get the FITS data and plot on ax1
+        energies, counts = self.get_fits_data(fits_path)
+        ax1.plot(energies, counts, '-', color='black', label='XRF Data', linewidth=1.0)
+        
+        # Plot background if provided
+        if bkg_file:
+            bg_energies, bg_counts = self.get_fits_data(bkg_file)
+            ax1.plot(energies, bg_counts, '-', color='red', 
+                    label='Background', linewidth=1.0, alpha=0.6)
+
+        # Plot Gaussian models on ax2
         colors = plt.cm.tab10(np.linspace(0, 1, len(self.elements)))
         for element, model, color in zip(self.elements, self.gaussian_models.values(), colors):
             amplitude = self.element_amplitudes[element]
             y = model(energies) * amplitude
-            
-            # if normalize:
-            #     y = y * (max_intensity / np.max(y))
             ax2.plot(energies, y, '--', 
                     label=f'{element} (amp={amplitude:.2f})', 
                     color=color, alpha=0.7)
@@ -259,14 +261,12 @@ class DataHandler:
                 if x_range is None or (x_range[0] <= energy <= x_range[1]):
                     height = model.single_gaussian(energy, energy, model.std_devs[0], 
                                                 model.amplitudes[0]) * amplitude
-                    # if normalize:
-                    #     height = height * (max_intensity / np.max(y))
                     ax2.annotate(f'{element}-{label}',
-                               xy=(energy, height),
-                               xytext=(0, 10), textcoords='offset points',
-                               ha='center', va='bottom',
-                               fontsize=8, color=color,
-                               rotation=45)
+                            xy=(energy, height),
+                            xytext=(0, 10), textcoords='offset points',
+                            ha='center', va='bottom',
+                            fontsize=8, color=color,
+                            rotation=45)
         
         # Customize plot
         ax1.set_xlabel('Energy (KeV)', fontsize=12)
@@ -282,9 +282,8 @@ class DataHandler:
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax1.legend(lines1 + lines2, labels1 + labels2, 
-                  loc='upper right', bbox_to_anchor=(1.15, 1.0))
-        intensity=self.calculate_model_intensity()
-        ax3.plot(energies, intensity, label=f'with noise (amp={amplitude:.2f})', alpha=0.7)
+                loc='upper right', bbox_to_anchor=(1.15, 1.0))
+        
         # Save plot
         fits_name = os.path.splitext(os.path.basename(fits_path))[0]
         range_str = f'_{x_range[0]}-{x_range[1]}keV' if x_range else ''
