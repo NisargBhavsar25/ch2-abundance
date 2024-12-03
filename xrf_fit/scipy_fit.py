@@ -214,7 +214,7 @@ def test_optimization(fits_path, bkg_path, method='leastsq', x_range=(0, 27)):
 
 if __name__ == "__main__":
     fits_file = "fits_20/ch2_cla_l1_20240123T033030609_20240123T033038609.fits"
-    bkg_file = "data/ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits"
+    # bkg_file = "data/ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits"
     
     # Test different optimization methods
     methods = ['leastsq', 'levenberg']

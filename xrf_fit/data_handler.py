@@ -212,22 +212,6 @@ class DataHandler:
                 
                 return fig, ax, energies, data
                 
-        # except Exception as e:
-        #     raise ValueError(f"Error reading or plotting FITS file: {str(e)}")
-
-    def plot_combined_spectrum(self, fits_path, x_range=None, name="", normalize=True, bkg_file=None):
-        """
-        Modified version of combined spectrum plot using the new FITS plotting function.
-        
-        Args:
-            fits_path (str): Path to the FITS file
-            x_range (tuple, optional): Energy range to plot
-            name (str): Name prefix for saved plot
-            normalize (bool): Whether to normalize intensities
-            bkg_file (str, optional): Path to background FITS file
-        """
-        # First get the FITS data
-
     def plot_combined_spectrum(self, fits_path, x_range=None, name="", normalize=True, bkg_file=None):
         """
         Modified version of combined spectrum plot using the new FITS plotting function.
@@ -314,6 +298,28 @@ class DataHandler:
         spectrum_with_background = spectrum + bg_interpolated
         
         return spectrum_with_background
+
+    def get_background(self, background_fits_path, energies):
+        """
+        Add background noise from a reference FITS file to a spectrum.
+        
+        Args:
+            background_fits_path (str): Path to the background FITS file
+            energies (np.array): Energy values for the spectrum
+            spectrum (np.array): Intensity values of the original spectrum
+            
+        Returns:
+            np.array: New spectrum with background added
+        """
+        # Get background data
+        bg_energies, bg_counts = self.get_fits_data(background_fits_path)
+        
+        # Ensure the background data matches the spectrum energy points
+        # by interpolating the background counts
+        bg_interpolated = np.interp(energies, bg_energies, bg_counts)
+        
+        return bg_interpolated
+    
     def calculate_model_intensity(self):
                 # Generate model spectrum
         energy_range=(0,27)

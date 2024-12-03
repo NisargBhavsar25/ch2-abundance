@@ -140,7 +140,7 @@ class GaussianSum:
         
         return fig, ax
 
-def test_gaussian_sum(element='O', std_dev=0.1, x_range=(0, 8)):
+def test_gaussian_sum(element='Al', std_dev=0.1, x_range=(0, 8)):
     """
     Test function to demonstrate the GaussianSum class.
     

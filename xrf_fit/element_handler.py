@@ -55,13 +55,15 @@ class ElementHandler:
         Set the amplitude for a specific element.
         
         Args:
-            element (str): Element symbol
+            element (str): Element 
             amplitude (float): New amplitude value
         """
         if element in self.element_amplitudes:
             self.element_amplitudes[element] = conc
         else:
             raise ValueError(f"Element {element} not in model list")
+        
+        
     def calculate_secondary_intensity(self,ex,pline):
         si=0
         for ey in self.elements:
@@ -171,7 +173,7 @@ class ElementHandler:
         plt.grid(True)
         plt.legend()
         plt.savefig(filename+"test.png")
-# Example usage:.
+
 if __name__ == "__main__":
     handler = ElementHandler(verbose=True)
     energies = np.linspace(0, 27, 2048)  # Example energy range
