@@ -114,29 +114,38 @@ class ElementModel:
         energy_dict["lb"] = peak_energies_lb
         radrate["lb"] = peak_rad_rates_lb
         means={}
-        for key,levels in energy_dict.items():
-            means[key]=np.mean(list(levels.values()))
-        
-        for key in energy_dict.keys():
-            energy_dict[key]["mean"]=means[key]
+        for key, levels in energy_dict.items():
+            if levels:  # Check if the dictionary is not empty
+                means[key] = {
+                    "mean": np.mean(list(levels.values()))
+                }
+                # Update the energy_dict structure
+                energy_dict[key] = {
+                    **levels,  # Keep existing energy values
+                    "mean": means[key]["mean"]  # Add mean as a nested value
+                }
 
-        for key,levels in radrate.items():
-            means[key]=np.mean(list(levels.values()))
-        
-        for key in radrate.keys():
-            radrate[key]["mean"]=means[key]
+        for key, levels in radrate.items():
+            if levels:  # Check if the dictionary is not empty
+                means[key] = {
+                    "mean": np.mean(list(levels.values()))
+                }
+                # Update the radrate structure
+                radrate[key] = {
+                    **levels,  # Keep existing rate values
+                    "mean": means[key]["mean"]  # Add mean as a nested value
+                }
 
         self.energy_dict = energy_dict
         self.radrates=radrate
         self.lines=lines
+
         self.line_div={}
         for line in lines:
             if line not in self.line_div.keys():
                 self.line_div[line[:2]]=[]
             self.line_div[line[:2]].append(line)
         self.std_dev={line[:2]:0.01 for line in self.energy_dict.keys()}
-        # self.std_devs = np.array(std_dev * len(energy_dict))
-        # self.radrate = np.array(list(radrate.values()))
 
     def calculate_mass_absorption_coefficient(self, energy):
         """
@@ -150,7 +159,7 @@ class ElementModel:
         """
         return xraylib.CS_Total(self.Z, energy)  # Total cross-section as a proxy
     
-    def calculate_mass_absorption_coefficient(self, element,line):
+    def _calculate_mass_absorption_coefficient(self, element,line):
         """
         Calculate the mass absorption coefficient for the element at the given energy.
         
@@ -172,18 +181,21 @@ class ElementModel:
             ltype="ka"
             line_energy=self.energy_dict["ka"]["mean"]
             rk = xraylib.JumpFactor(self.Z, 0)  # Get jump ratio for the specific line
-        if "kb" in line:
+        elif "kb" in line:
             ltype="kb"
             line_energy=self.energy_dict["kb"]["mean"]
             rk = xraylib.JumpFactor(self.Z,0)  # Get jump ratio for the specific line
-        if "la" in line:
+        elif "la" in line:
             ltype="la"
             line_energy=self.energy_dict["la"]["mean"]
             rk = xraylib.JumpFactor(self.Z,1)  # Get jump ratio for the specific line
-        if "lb" in line:
+        elif "lb" in line:
             ltype="lb"
             line_energy=self.energy_dict["lb"]["mean"]
             rk = xraylib.JumpFactor(self.Z,1)  # Get jump ratio for the specific line
+        else:
+            return 0    
+        
         try:
             fluor_yield=xraylib.FluorYield(self.Z,0 if "k" in line else 1)
         except Exception as e:
@@ -217,17 +229,6 @@ class ElementModel:
         """
         energy_mean=self.energy_dict[line[:2]]["mean"]
         mass_absorption_coeff = self.calculate_mass_absorption_coefficient(energy_mean)
-        # # Define the number of bins based on the standard deviation
-        # num_bins = int(2 * self.std_dev[line] / 0.0277) + 1
-        # # Create the energies array centered around energy_mean
-        # energies = np.linspace(energy_mean - self.std_dev[line], 
-        #                         energy_mean + self.std_dev[line], 
-        #                         num_bins)
-        # fulle=np.zeros(2048)
-        # binstart = int((energies[0] - 0) / 0.0277)  # Assuming 0 is the starting energy
-        # binend = int((energies[-1] - 0) / 0.0277)    # Assuming 0 is the starting energy
-        
-        # fulle[binstart:binend]=self.gaussian(energies, self.energy_dict[line[:2]]["mean"],std_dev=self.std_dev[line[:2]]) * mass_absorption_coeff
         return mass_absorption_coeff*self.conc
     def jump_ratio_factor(self, shell):
         """
@@ -252,5 +253,5 @@ if __name__ == "__main__":
     std_dev = 0.1  # Standard deviation
     
     model = ElementModel(element, conc, std_dev)
-    result = model.primary_intensity(energy)
+    result = model.primary_intensity('ka1')
     print(f"Weighted Gaussian value for {element} at {energy} keV: {result}") 

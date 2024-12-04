@@ -1,18 +1,17 @@
 import numpy as np
 from scipy import optimize
 import matplotlib.pyplot as plt
-from element_model import ElementModel  # Import ElementModel
+from element_model import ElementModel
 from element_handler import ElementHandler
-from astropy.io import fits  # Add this import at the top
-import pygad  # Add this import
+from astropy.io import fits
 
 class PhyOptimizer:
-    def __init__(self, el_handler, fits_path, bkg_path=None, x_range=None, method='ga'):
+    def __init__(self, el_handler, fits_path, bkg_path=None, x_range=None, method='leastsq'):
         """
         Initialize optimizer using scipy.optimize methods.
         
         Args:
-            el_handler (DataHandler): Instance of DataHandler class
+            el_handler (ElementHandler): Instance of ElementHandler class
             fits_path (str): Path to the FITS file to fit
             bkg_path (str): Path to background file
             x_range (tuple, optional): Energy range (min_kev, max_kev) to fit
@@ -37,156 +36,155 @@ class PhyOptimizer:
         
         # Initialize bounds and initial guess
         self._setup_optimization_params()
-        
-        # Add GA-specific initialization
-        if method == 'ga':
-            self.init_ga()
 
     def _setup_optimization_params(self):
         """Setup optimization parameters, bounds, and initial guess."""
-        # Initialize bounds for concentrations
-        conc_bounds = [(0.0, 50.0)] * self.n_elements  # Adjust range as needed
+        # Initialize empty lists for bounds and initial guesses
+        conc_bounds = []
+        std_dev_bounds = []
+        self.initial_guess = []
         
-        # Initialize bounds for standard deviations
-        std_dev_bounds = [(0.01, 1)] * self.n_elements  # Adjust range as needed
+        # Get maximum counts for scaling
+        max_counts = np.max(self.counts)
+        print(f"Maximum counts in data: {max_counts}")
+
+        # For each element
+        for element in self.el_handler.elements:
+            # --- Concentration parameters ---
+            max_peak_intensity = 0
+            el_model = self.el_handler.element_models[element]
+            
+            # Find strongest peak for initial guess
+            for line_type, lines in el_model.line_div.items():
+                for line in lines:
+                    try:
+                        energy = el_model.energy_dict[line_type]["mean"]
+                        idx = np.abs(self.energies - energy).argmin()
+                        intensity = self.counts[idx]
+                        max_peak_intensity = max(max_peak_intensity, intensity)
+                    except:
+                        continue
+            
+            # Set concentration bounds and initial guess
+            conc_bounds.append((0.0, 1.0))  # Updated concentration bounds
+            initial_conc = max_peak_intensity / max_counts if max_peak_intensity > 0 else 0.1  # Updated initial guess
+            self.initial_guess.append(initial_conc)
+            
+            # --- Standard deviation parameters ---
+            # Use detector resolution for std dev bounds
+            fwhm_kev = 0.15  # Typical detector FWHM in keV
+            sigma = fwhm_kev / 2.355  # Convert FWHM to sigma
+            
+            std_dev_bounds.append((sigma * 0.5, sigma * 2.0))
+            self.initial_guess.append(sigma)
         
-        # Scale factor bounds
-        scale_bounds = [(1e-7, 1e-4)]
+        # --- Scale factor parameter ---
+        # Scale bounds based on counts
+        scale_factor = 1.0  # Updated scale factor initial guess
+        scale_bounds = [(0.1, 10.0)]  # Updated scale factor bounds
+        self.initial_guess.append(scale_factor)
         
+        # Combine all bounds
         self.bounds = conc_bounds + std_dev_bounds + scale_bounds
         
-        # Initial guess
-        self.initial_guess = []
-        # Initial concentrations from element handler
-        for element in self.el_handler.elements:
-            self.initial_guess.append(self.el_handler.conc[element])
+        # Verify and fix any out-of-bounds values
+        for i, (guess, (lower, upper)) in enumerate(zip(self.initial_guess, self.bounds)):
+            if not (lower <= guess <= upper):
+                # Fix the guess to be within bounds
+                self.initial_guess[i] = (lower + upper) / 2
         
-        # Initial standard deviations
-        self.initial_guess.extend([0.1] * self.n_elements)
-        
-        # Initial scale
-        self.initial_guess.append(1e-6)
-
-    def init_ga(self):
-        """Initialize genetic algorithm parameters."""
-        self.num_generations = 100
-        self.num_parents_mating = 4
-        
-        # Create gene space with specific ranges for each parameter
-        self.gene_space = []
-        # Concentration ranges
-        for _ in range(self.n_elements):
-            self.gene_space.append({'low': 0.0, 'high': 50.0})
-        # Sigma ranges
-        for _ in range(self.n_elements):
-            self.gene_space.append({'low': 0.01, 'high': 1.0})
-        # Scale factor range
-        self.gene_space.append({'low': 1e-7, 'high': 1e-4})
-        
-        # Define GA instance
-        self.ga_instance = pygad.GA(
-            num_generations=self.num_generations,
-            sol_per_pop=100,
-            num_parents_mating=self.num_parents_mating,
-            num_genes=self.n_params,
-            gene_space=self.gene_space,
-            fitness_func=self.ga_fitness_func,
-            on_generation=self.on_generation
-        )
-
-    def ga_fitness_func(self, ga_instance, solution, solution_idx):
-        """Fitness function for genetic algorithm."""
-        # Calculate model intensity using the solution parameters
-        model_intensity = self.calculate_model_intensity(solution)
-        
-        # Calculate fitness (negative of objective function)
-        return -self.objective_function(solution)
-    
-    def on_generation(self, ga_instance):
-        """Callback for each generation."""
-        print(f"Generation {ga_instance.generations_completed}")
-        print(f"Best fitness: {ga_instance.best_solution()[1]}")
-        
-        # Optionally plot current best solution
-        best_solution = ga_instance.best_solution()[0]
-        model_intensity = self.calculate_model_intensity(best_solution)
-        plt.clf()
-        plt.plot(self.energies, self.counts, 'b-', label='Data')
-        plt.plot(self.energies, model_intensity, 'r-', label='Model')
-        plt.legend()
-        plt.pause(0.1)
+        # Debug information
+        print(f"Number of elements: {len(self.el_handler.elements)}")
+        print(f"Total parameters: {len(self.initial_guess)}")
+        print(f"Parameters per element: 2 (concentration and std_dev)")
+        print("\nBounds:")
+        for i, ((lower, upper), guess) in enumerate(zip(self.bounds, self.initial_guess)):
+            if i < len(self.el_handler.elements):
+                param_type = f"Concentration for {self.el_handler.elements[i]}"
+            elif i < 2 * len(self.el_handler.elements):
+                param_type = f"Std Dev for {self.el_handler.elements[i - len(self.el_handler.elements)]}"
+            else:
+                param_type = "Scale factor"
+            print(f"{param_type}: [{lower:.2e}, {upper:.2e}], initial: {guess:.2e}")
 
     def objective_function(self, params):
-        """Custom objective function for optimization."""
+        """Calculate fitting objective using full spectrum comparison."""
         # Update concentrations in element handler
-        for i, element in enumerate(self.el_handler.elements):
-            self.el_handler.conc[element] = params[i]
-            self.el_handler.std_dev[element] = params[self.n_elements + i]
-        
-        # Calculate model intensity using element handler
-        model_intensity = self.el_handler.calculate_folded_intensity(self.energies)
-        model_intensity *= params[-1]  # Scale factor
-        
-        # Calculate residuals only for valid bins
-        residuals = np.zeros_like(self.counts)
-        for element in self.el_handler.elements:
-            for line_group in self.el_handler.element_models[element].line_div.values():
-                for line in line_group:
-                    energy_mean = self.el_handler.element_models[element].energy_dict[line[:2]]["mean"]
-                    std_dev = self.el_handler.std_dev[element]
-                    
-                    # Calculate bin range
-                    binstart = int((energy_mean - std_dev) / self.kev_per_channel)
-                    binend = int((energy_mean + std_dev) / self.kev_per_channel)
-                    
-                    # Ensure bins are within valid range
-                    binstart = max(0, binstart)
-                    binend = min(len(self.counts), binend)
-                    
-                    # Calculate residuals for this range
-                    residuals[binstart:binend] = np.abs(self.counts[binstart:binend] - model_intensity[binstart:binend])
-        print("Error",np.sum(np.abs(residuals**4)))
-        print(np.max(self.counts),np.max(model_intensity))
-        return np.sum(np.abs(residuals**2))  # Return only non-zero residuals
-
-    def calculate_model_intensity(self, params):
-        """Calculate model intensity for given parameters."""
-        # Update concentrations and std_devs in element handler
-        for i, element in enumerate(self.el_handler.elements):
-            self.el_handler.conc[element] = params[i]
-            self.el_handler.std_dev[element] = params[self.n_elements + i]
-        
-        # Calculate model intensity
-        model_intensity = self.el_handler.calculate_folded_intensity(self.energies)
-        model_intensity *= params[-1]  # Scale factor
-        
-        return model_intensity
+        try:
+            # Update element handler parameters
+            for i, element in enumerate(self.el_handler.elements):
+                self.el_handler.conc[element] = max(0, params[i])  # Ensure non-negative
+                self.el_handler.std_dev[element] = max(0.01, params[self.n_elements + i])  # Ensure non-zero
+            
+            # Calculate model intensity
+            model_intensity = self.el_handler.calculate_folded_intensity(self.energies)
+            model_intensity *= max(1e-10, params[-1])  # Ensure non-zero scale
+            
+            # Calculate residuals with proper weighting
+            # Add small constant to avoid division by zero
+            weights = 1.0 / np.sqrt(self.counts + 1)  # Poisson statistics
+            residuals = (self.counts - model_intensity) * weights
+            
+            # Add extra weight to peak regions
+            peak_weights = np.ones_like(self.counts)
+            for i, element in enumerate(self.el_handler.elements):
+                for line_group in self.el_handler.element_models[element].line_div.values():
+                    for line in line_group:
+                        energy_mean = self.el_handler.element_models[element].energy_dict[line[:2]]["mean"]
+                        std_dev = params[self.n_elements + i]
+                        
+                        # Calculate peak region
+                        binstart = int((energy_mean - 3*std_dev) / self.kev_per_channel)
+                        binend = int((energy_mean + 3*std_dev) / self.kev_per_channel)
+                        
+                        # Ensure bins are within valid range
+                        binstart = max(0, binstart)
+                        binend = min(len(peak_weights), binend)
+                        
+                        # Increase weight in peak regions
+                        peak_weights[binstart:binend] = 2.0
+            
+            residuals *= peak_weights
+            
+            # Print diagnostics occasionally
+            if np.random.random() < 0.1:  # Print ~10% of iterations
+                print(f"Max model: {np.max(model_intensity):.2f}, Max data: {np.max(self.counts):.2f}")
+                print(f"Current cost: {np.sum(residuals**2):.2e}")
+            
+            return residuals
+            
+        except Exception as e:
+            print(f"Error in objective function: {e}")
+            return np.ones_like(self.counts) * 1e6
 
     def run_optimization(self):
         """Run optimization with specified method."""
-        if self.method == 'ga':
-            self.ga_instance.run()
-            solution = self.ga_instance.best_solution()[0]
-            fitness = self.ga_instance.best_solution()[1]
-            self.result = type('Result', (), {'x': solution, 'fun': -fitness})
-            return solution, -fitness
-        elif self.method == 'leastsq':
+        if self.method == 'leastsq':
+            # Verify dimensions match
+            if len(self.initial_guess) != len(self.bounds):
+                raise ValueError(f"Dimension mismatch: {len(self.initial_guess)} initial values but {len(self.bounds)} bounds")
+            
+            # Convert bounds to form needed by least_squares
+            bounds_min = [b[0] for b in self.bounds]
+            bounds_max = [b[1] for b in self.bounds]
+
             result = optimize.least_squares(
                 self.objective_function,
                 self.initial_guess,
-                bounds=tuple(zip(*self.bounds)),
-                method='trf',
+                bounds=(bounds_min, bounds_max),
+                jac='3-point',
                 loss='linear',
-                verbose=2,
-                ftol=1e-9,
-                xtol=1e-8
-            )
+                max_nfev=200,
+                ftol=1e-4,
+                xtol=1e-4,
+                verbose=2 
+            )   
         elif self.method == 'levenberg':
             result = optimize.root(
                 self.objective_function,
                 self.initial_guess,
                 method='lm',
-                options={'maxiter': 500}
+                options={'maxiter': 1000}  # Increased maximum iterations
             )
         else:
             result = optimize.minimize(
@@ -194,7 +192,7 @@ class PhyOptimizer:
                 self.initial_guess,
                 method=self.method,
                 bounds=self.bounds,
-                options={'maxiter': 500}
+                options={'maxiter': 1000}  # Increased maximum iterations
             )
 
         self.result = result
@@ -204,8 +202,16 @@ class PhyOptimizer:
     def plot_result(self, model_name=""):
         """Plot the optimized fit result."""
         fig, ax = plt.subplots(figsize=(10, 6))
-        model_intensity = self.calculate_model_intensity(self.result.x)
-        print(np.max(self.counts),np.max(model_intensity))
+        
+        # Update parameters to final values
+        for i, element in enumerate(self.el_handler.elements):
+            self.el_handler.conc[element] = self.result.x[i]
+            self.el_handler.std_dev[element] = self.result.x[self.n_elements + i]
+            
+        # Calculate final model
+        model_intensity = self.el_handler.calculate_folded_intensity(self.energies)
+        model_intensity *= self.result.x[-1]
+        
         ax.plot(self.energies, self.counts, 'b-', label='Data')
         ax.plot(self.energies, model_intensity, 'r-', label='Model Fit')
         ax.set_xlabel('Energy (keV)')
@@ -268,12 +274,7 @@ class PhyOptimizer:
                 
             return energies, counts
 
-# Example usage:
-# handler = DataHandler(bkg_path="path/to/background.fits")
-# optimizer = PhyOptimizer(handler, "path/to/fits.fits", "path/to/background.fits")
-# amplitudes, sigmas = optimizer.fit_from_files("path/to/fits.fits", "path/to/background.fits")
 if __name__ == "__main__":
-
     # Initialize ElementHandler
     el_handler = ElementHandler(num_channels=1024)
 
@@ -282,14 +283,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process fits file path.")
     parser.add_argument("fits_path", type=str, help="Path to the FITS file")
     args = parser.parse_args()
-    optimizer = PhyOptimizer(el_handler, args.fits_path,method="leastsq")
+    optimizer = PhyOptimizer(el_handler, args.fits_path, method="leastsq")
 
     # Run optimization
     solution, residual = optimizer.run_optimization()
-    print("Residual",residual)
-    print("Solution",solution)
-    # calc_intensities = optimizer.calculate_model_intensity(solution)
-    # el_handler.plot_intensity(energies=optimizer.energies,intensities=calc_intensities)
+    print("Residual", residual)
+    print("Solution", solution)
+    
     # Plot results
     optimizer.plot_result("Physical Model Fit")
 
@@ -301,4 +301,4 @@ if __name__ == "__main__":
     # Print results
     for element, conc, std in zip(el_handler.elements, concentrations, std_devs):
         print(f"{element}: Concentration = {conc:.3f}, Std Dev = {std:.3f}")
-    print(f"Scale factor: {scale:.7f}")
+    print(f"Scale factor: {scale:.3f}")
