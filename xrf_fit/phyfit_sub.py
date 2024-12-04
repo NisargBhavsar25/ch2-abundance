@@ -118,8 +118,8 @@ class PhyOptimizer:
     
     def on_generation(self, ga_instance):
         """Callback for each generation."""
-        print(f"Generation {ga_instance.generations_completed}")
-        print(f"Best fitness: {ga_instance.best_solution()[1]}")
+        # print(f"Generation {ga_instance.generations_completed}")
+        # print(f"Best fitness: {ga_instance.best_solution()[1]}")
         
         # Optionally plot current best solution
         best_solution = ga_instance.best_solution()[0]
@@ -185,20 +185,20 @@ class PhyOptimizer:
             
             error = np.sum(weighted_residuals**2) + peak_penalty
             
-            print("Error:", error)
-            print(np.max(self.counts), np.max(model_intensity))
+            # print("Error:", error)
+            # print(np.max(self.counts), np.max(model_intensity))
             
             if hasattr(self, '_iter_count'):
                 self._iter_count += 1
             else:
                 self._iter_count = 0
             
-            if self._iter_count % 100 == 0:
-                print(f"Iteration {self._iter_count}, Error: {error:.3f}")
+            # if self._iter_count % 100 == 0:
+            #     print(f"Iteration {self._iter_count}, Error: {error:.3f}")
             
             return error
         except Exception as e:
-            print(f"Error in objective function: {e}")
+            # print(f"Error in objective function: {e}")
             return 1e10
 
     def calculate_model_intensity(self, params):
@@ -237,7 +237,7 @@ class PhyOptimizer:
                 bounds=tuple(zip(*self.bounds)),
                 method='trf',
                 loss='linear',
-                verbose=2
+                # verbose=2
             )
         else:
             # For other methods, use minimize with sum of squared residuals
@@ -356,29 +356,83 @@ import pandas as pd
 if __name__ == "__main__":
 
 
-    el_handler = ElementHandler(num_channels=2048,verbose=False)
+    import multiprocessing as mp
+    from functools import partial
     
-    ca_al_list = pd.read_csv("high_confidence_ca_al.csv")
-    fits_path =  ca_al_list.iloc[5]["filename"]  # Replace with your default path
-    
-    # Optional: Still allow command-line override
-    try:
-        import argparse
-        parser = argparse.ArgumentParser(description="Process fits file path.")
-        parser.add_argument("fits_path", type=str, help="Path to the FITS file", nargs='?', default=fits_path)
-        args = parser.parse_args()
-        fits_path = args.fits_path
-    except:
-        pass
+    def process_file(el_handler, file_info):
+        """Process a single file and return results"""
+        fits_path = file_info["filename"]
+        try:
+            # Initialize optimizer
+            optimizer = PhyOptimizer(el_handler, fits_path, method="leastsq")
+            
+            # Run optimization
+            solution, residual = optimizer.run_optimization()
+            
+            # Plot results
+            optimizer.plot_result(f"Physical Model Fit - {fits_path}")
+            
+            return {
+                'filename': fits_path,
+                'solution': solution,
+                'residual': residual
+            }
+            
+        except Exception as e:
+            # print(f"Error processing {fits_path}: {str(e)}")
+            return None
 
-    # Initialize optimizer
-    optimizer = PhyOptimizer(el_handler, fits_path, method="leastsq")
-
-    # Run optimization
-    solution, residual = optimizer.run_optimization()
-    print("Residual:", residual)
-    
-    # Plot results
-    optimizer.plot_result("Physical Model Fit")
-    
-    # Print detailed results
+    if __name__ == "__main__":
+        el_handler = ElementHandler(num_channels=2048, verbose=False)
+        
+        from tqdm import tqdm
+        
+        ca_al_list = pd.read_csv("high_confidence_ca_al.csv")
+        
+        # Set up multiprocessing
+        num_processes = mp.cpu_count() - 1  # Leave one CPU free
+        pool = mp.Pool(processes=num_processes)
+        
+        # Create partial function with fixed el_handler
+        process_func = partial(process_file, el_handler)
+        
+        # Process files in parallel with progress bar
+        results = []
+        batch_size = 3000
+        
+        # Create iterator of file info dictionaries
+        file_infos = [{"filename": row["filename"]} for _, row in ca_al_list.iterrows()]
+        
+        # Process files with progress bar
+        for result in tqdm(pool.imap_unordered(process_func, file_infos), 
+                         total=len(file_infos),
+                         desc="Processing files"):
+            if result is not None:
+                results.append(result)
+                
+                # Save results to CSV every batch_size rows
+                if len(results) % batch_size == 0:
+                    batch_num = len(results) // batch_size - 1
+                    df = pd.DataFrame(results[batch_num*batch_size:(batch_num+1)*batch_size])
+                    df.to_csv(f'phyfit-csv/results_batch_{batch_num}.csv', index=False)
+        
+        pool.close()
+        pool.join()
+        
+        # Save any remaining results
+        if len(results) % batch_size != 0:
+            batch_num = len(results) // batch_size
+            df = pd.DataFrame(results[batch_num*batch_size:])
+            df.to_csv(f'phyfit-csv/results_batch_{batch_num}.csv', index=False)
+        
+        # Combine all batch files into one final CSV
+        all_results = []
+        for i in range((len(results) + batch_size - 1) // batch_size):
+            batch_file = f'phyfit-csv/results_batch_{i}.csv'
+            if os.path.exists(batch_file):
+                batch_df = pd.read_csv(batch_file)
+                all_results.append(batch_df)
+                
+        # Concatenate all batches and save final CSV
+        final_df = pd.concat(all_results, ignore_index=True)
+        final_df.to_csv('phyfit-csv/all_results.csv', index=False)
