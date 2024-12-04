@@ -278,7 +278,7 @@ if __name__ == "__main__":
     el_handler = ElementHandler(num_channels=2048,verbose=False)
     
     ca_al_list = pd.read_csv("high_confidence_ca_al.csv")
-    fits_path =  ca_al_list.iloc[1]["filename"]  # Replace with your default path
+    fits_path =  ca_al_list.iloc[0]["filename"]  # Replace with your default path
     
     # Optional: Still allow command-line override
     try:
