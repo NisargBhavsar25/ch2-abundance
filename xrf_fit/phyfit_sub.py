@@ -5,6 +5,8 @@ from element_model_sub import ElementModel  # Import ElementModel
 from element_handler_sub import ElementHandler
 from astropy.io import fits  # Add this import at the top
 import pygad  # Add this import
+import os
+from data_handler_nobkg import DataHandler
 
 class PhyOptimizer:
     def __init__(self, el_handler, fits_path, bkg_path=None, x_range=None, method='ga'):
@@ -29,8 +31,14 @@ class PhyOptimizer:
             self.kev_per_channel = 0.0135 if num_channels == 2048 else 0.0277
             
         self.energies, self.counts = self.get_fits_data(fits_path)
+        self.background = self.get_background('/home/ubuntu/ch2-abundance/xrf_fit/ch2_cla_l1_20210826T220355000_20210826T223335000_1024.fits', self.energies)
         
-        # Number of parameters to optimize
+        # scale_factor = np.sum(self.counts) / np.sum(self.background)
+        self.background = self.background 
+        self.counts = self.counts - self.background
+        
+        self.counts = np.maximum(self.counts, 0)
+        
         self.n_elements = len(self.el_handler.elements)
         # For each element: one amplitude and one sigma, plus global scale
         self.n_params = self.n_elements * 2 + 1
@@ -41,7 +49,28 @@ class PhyOptimizer:
         # Add GA-specific initialization
         if method == 'ga':
             self.init_ga()
-
+    
+    def get_background(self, background_fits_path, energies):
+        """
+        Add background noise from a reference FITS file to a spectrum.
+        
+        Args:
+            background_fits_path (str): Path to the background FITS file
+            energies (np.array): Energy values for the spectrum
+            spectrum (np.array): Intensity values of the original spectrum
+            
+        Returns:
+            np.array: New spectrum with background added
+        """
+        # Get background data
+        bg_energies, bg_counts = self.get_fits_data(background_fits_path)
+        
+        # Ensure the background data matches the spectrum energy points
+        # by interpolating the background counts
+        bg_interpolated = np.interp(energies, bg_energies, bg_counts)
+        
+        return bg_interpolated
+    
     def _setup_optimization_params(self):
         """Setup optimization parameters, bounds, and initial guess."""
         # Initialize bounds for concentrations
@@ -268,6 +297,10 @@ class PhyOptimizer:
         colors = plt.cm.rainbow(np.linspace(0, 1, len(self.el_handler.elements)))
         
         for i, element in enumerate(self.el_handler.elements):
+            # Get amplitude and sigma for this element
+            amplitude = self.result.x[i]
+            sigma = self.result.x[self.n_elements + i]
+            
             # Temporarily set all concentrations to 0 except current element
             original_conc = self.el_handler.conc.copy()
             self.el_handler.conc = {el: 0.0 for el in self.el_handler.elements}
@@ -276,7 +309,7 @@ class PhyOptimizer:
             # Calculate individual element intensity
             element_intensity = self.el_handler.calculate_folded_intensity(self.energies) * scale
             ax.plot(self.energies, element_intensity, '-', color=colors[i], 
-                   label=f'{element}', alpha=0.6)
+                   label=f'{element} (A={amplitude:.2f}, σ={sigma:.2f})', alpha=0.6)
             
             # Restore original concentrations
             self.el_handler.conc = original_conc
@@ -288,8 +321,15 @@ class PhyOptimizer:
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         ax.grid(True, which='both', linestyle='--', alpha=0.3)
         
+        # Extract just the filename without the path
+        base_filename = os.path.basename(model_name)
+        
+        # Create a simpler output filename
+        output_filename = f'phyFit_result_{base_filename}.png'
+        
         plt.tight_layout()
-        plt.savefig(f'phyFit_result_{model_name}.png', bbox_inches='tight')
+        print(f'Saving plot as: {output_filename}')
+        plt.savefig(output_filename, bbox_inches='tight')
         plt.close()
         return fig
 
@@ -351,13 +391,20 @@ class PhyOptimizer:
 # optimizer = PhyOptimizer(handler, "path/to/fits.fits", "path/to/background.fits")
 # amplitudes, sigmas = optimizer.fit_from_files("path/to/fits.fits", "path/to/background.fits")
 import pandas as pd
-
+import multiprocessing as mp
+from functools import partial
+from tqdm import tqdm
 
 if __name__ == "__main__":
 
-
-    import multiprocessing as mp
-    from functools import partial
+    # Initialize element handler
+    el_handler = ElementHandler(num_channels=2048, verbose=False)
+    
+    # Read list of files to process
+    ca_al_list = pd.read_csv("high_confidence_ca_al.csv")
+    
+    # Create phyfit-csv directory if it doesn't exist
+    os.makedirs("phyfit-csv", exist_ok=True)
     
     def process_file(el_handler, file_info):
         """Process a single file and return results"""
@@ -369,70 +416,66 @@ if __name__ == "__main__":
             # Run optimization
             solution, residual = optimizer.run_optimization()
             
-            # Plot results
-            optimizer.plot_result(f"Physical Model Fit - {fits_path}")
+            # Extract amplitudes and sigmas for each element
+            n_elements = len(el_handler.elements)
+            amplitudes = solution[:n_elements]
+            sigmas = solution[n_elements:-1]
             
-            return {
-                'filename': fits_path,
-                'solution': solution,
-                'residual': residual
-            }
+            # Create dictionary with filename and parameters for each element
+            result = {'filename': fits_path}
+            
+            # Add amplitude and sigma columns for each element
+            for i, element in enumerate(el_handler.elements):
+                result[f'{element}_amplitude'] = amplitudes[i]
+                result[f'{element}_sigma'] = sigmas[i]
+                
+            return result
             
         except Exception as e:
-            # print(f"Error processing {fits_path}: {str(e)}")
+            print(f"Error processing {fits_path}: {str(e)}")
             return None
 
-    if __name__ == "__main__":
-        el_handler = ElementHandler(num_channels=2048, verbose=False)
+    # Set up multiprocessing
+    num_processes = mp.cpu_count() - 1  # Leave one CPU free
+    pool = mp.Pool(processes=num_processes)
+    
+    # Create partial function with fixed el_handler
+    process_func = partial(process_file, el_handler)
+    
+    # Process files in parallel with progress bar
+    results = []
+    batch_size = 3000
+    
+    # Create iterator of file info dictionaries
+    file_infos = [{"filename": row["filename"]} for _, row in ca_al_list.iterrows()]
+    
+    # Calculate total number of batches
+    total_batches = (len(file_infos) + batch_size - 1) // batch_size
+    print(f"Processing {total_batches} total batches")
+    
+    # Process files in batches
+    for batch_num, i in tqdm(enumerate(range(0, len(file_infos), batch_size)), desc="Processing batches"):
+        batch = file_infos[i:i + batch_size]
         
-        from tqdm import tqdm
-        
-        ca_al_list = pd.read_csv("high_confidence_ca_al.csv")
-        
-        # Set up multiprocessing
-        num_processes = mp.cpu_count() - 1  # Leave one CPU free
-        pool = mp.Pool(processes=num_processes)
-        
-        # Create partial function with fixed el_handler
-        process_func = partial(process_file, el_handler)
-        
-        # Process files in parallel with progress bar
-        results = []
-        batch_size = 3000
-        
-        # Create iterator of file info dictionaries
-        file_infos = [{"filename": row["filename"]} for _, row in ca_al_list.iterrows()]
-        
-        # Process files with progress bar
-        for result in tqdm(pool.imap_unordered(process_func, file_infos), 
-                         total=len(file_infos),
-                         desc="Processing files"):
+        batch_results = []
+        for result in tqdm(pool.imap_unordered(process_func, batch),
+                         total=len(batch),
+                         desc=f"Processing batch {batch_num + 1}/{total_batches}",
+                         leave=False):
             if result is not None:
-                results.append(result)
-                
-                # Save results to CSV every batch_size rows
-                if len(results) % batch_size == 0:
-                    batch_num = len(results) // batch_size - 1
-                    df = pd.DataFrame(results[batch_num*batch_size:(batch_num+1)*batch_size])
-                    df.to_csv(f'phyfit-csv/results_batch_{batch_num}.csv', index=False)
+                batch_results.append(result)
         
-        pool.close()
-        pool.join()
-        
-        # Save any remaining results
-        if len(results) % batch_size != 0:
-            batch_num = len(results) // batch_size
-            df = pd.DataFrame(results[batch_num*batch_size:])
-            df.to_csv(f'phyfit-csv/results_batch_{batch_num}.csv', index=False)
-        
-        # Combine all batch files into one final CSV
-        all_results = []
-        for i in range((len(results) + batch_size - 1) // batch_size):
-            batch_file = f'phyfit-csv/results_batch_{i}.csv'
-            if os.path.exists(batch_file):
-                batch_df = pd.read_csv(batch_file)
-                all_results.append(batch_df)
-                
-        # Concatenate all batches and save final CSV
-        final_df = pd.concat(all_results, ignore_index=True)
-        final_df.to_csv('phyfit-csv/all_results.csv', index=False)
+        # Convert batch results to DataFrame and save
+        if batch_results:
+            batch_df = pd.DataFrame(batch_results)
+            batch_df.to_csv(f"phyfit-csv/batch_{batch_num + 1}.csv", index=False)
+            results.extend(batch_results)
+    
+    # Combine all results and save final CSV
+    if results:
+        final_df = pd.DataFrame(results)
+        final_df.to_csv("phyfit-csv/combined_results.csv", index=False)
+        print("Final results saved to phyfit-csv/combined_results.csv")
+    
+    pool.close()
+    pool.join()
