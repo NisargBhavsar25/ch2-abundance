@@ -252,5 +252,5 @@ if __name__ == "__main__":
     std_dev = 0.1  # Standard deviation
     
     model = ElementModel(element, conc, std_dev)
-    result = model.weighted_gaussian(energy)
+    result = model.primary_intensity(energy)
     print(f"Weighted Gaussian value for {element} at {energy} keV: {result}") 

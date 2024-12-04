@@ -2,6 +2,7 @@ import numpy as np
 from element_model import ElementModel
 from scipy.stats import norm
 import matplotlib.pyplot as plt
+import os
 
 class ElementHandler:
     def __init__(self, std_dev=0.1, concentrations=None, verbose=False, num_channels=2048):
@@ -87,10 +88,16 @@ class ElementHandler:
         Returns:
             float: The Gaussian value at the specified energy.
         """
-        if std_dev==0:
-            return 0
-        return norm.pdf(x, mean, std_dev)
+        if std_dev <= 0:
+            return np.zeros_like(x)
     
+        # Avoid division by zero and handle empty arrays
+        if not isinstance(x, np.ndarray) or len(x) == 0:
+            return np.array([])
+        
+        # Use numpy's built-in normal distribution
+        gauss = norm.pdf(x, mean, std_dev)
+        return gauss     
 
     def calc_absolute_intensity(self,el,line):
         pi=self.element_models[el].calculate_mass_absorption_coefficient(el,line)
@@ -105,46 +112,72 @@ class ElementHandler:
     def calculate_folded_intensity(self, energies):
         """
         Calculate the combined intensity from all elements at specified energies.
-        
-        Args:
-            energies (np.array): Energy values for the spectrum
-            
-        Returns:
-            np.array: Combined intensity values
         """
         total_intensity = np.zeros_like(energies)
         for element in self.elements:
-            # print(element,"...",self.element_models[element].lines)
             for line_group in self.element_models[element].line_div.values():
                 for line in line_group:
-            #         # # Define the number of bins based on the standard deviation
-                    num_bins = int(2 * self.std_dev[element] / self.energy_factor) + 1 
-                    energy_mean=self.element_models[element].energy_dict[line[:2]]["mean"]
-                    se = self.energy_factor * int((energy_mean - self.std_dev[element]) / self.energy_factor)
-                    te = self.energy_factor * int((energy_mean + self.std_dev[element]) / self.energy_factor)
-            #         # Create the energies array centered around energy_mean
-                    energies = np.linspace(se, 
-                                            te, 
-                                            num_bins)
-                    fulle=np.zeros(2048)
-                    binstart = int((energy_mean - self.std_dev[element]) / self.energy_factor)
-                    binend = int((energy_mean + self.std_dev[element]) / self.energy_factor)
-                    it=self.calc_absolute_intensity(element,line)
-                    # print(element,": ",line,": ",it,energies.shape)
-                    
-                    gauss=self.gaussian(energies,energy_mean,self.std_dev[element])
-                    
-                    # Ensure gauss has the same shape as the bins we want to fill
-                    if len(gauss) < (binend - binstart):
-                        # If gauss is smaller, pad it with zeros
-                        gauss = np.pad(gauss, (0, (binend - binstart) - len(gauss)), 'constant')
-                    elif len(gauss) > (binend - binstart):
-                        # If gauss is larger, truncate it
-                        gauss = gauss[:(binend - binstart)]
-                    
-                    total_intensity[binstart:binend]+=it*gauss
-            
-        # print(total_intensity)
+                    try:
+                        energy_mean = self.element_models[element].energy_dict[line[:2]]["mean"]
+                        
+                        # Debug print for energy values
+                        if self.verbose:
+                            print(f"\nProcessing {element} {line}")
+                            print(f"Energy mean: {energy_mean:.2f}")
+                            print(f"Std dev: {self.std_dev[element]:.2f}")
+                            print(f"Energy factor: {self.energy_factor:.4f}")
+                        
+                        # Calculate bin positions properly
+                        center_bin = int(energy_mean / self.energy_factor)
+                        width_bins = int(3 * self.std_dev[element] / self.energy_factor)
+                        
+                        binstart = max(0, center_bin - width_bins)
+                        binend = min(len(energies), center_bin + width_bins)
+                        
+                        if self.verbose:
+                            print(f"Center bin: {center_bin}")
+                            print(f"Width in bins: {width_bins}")
+                            print(f"Bin range: {binstart} to {binend}")
+                        
+                        # Ensure valid bin range
+                        if binend <= binstart or binstart >= len(energies) or binend <= 0:
+                            if self.verbose:
+                                print(f"Skipping {element} {line}: Invalid bin range {binstart} to {binend}")
+                            continue
+                        
+                        # Calculate intensity
+                        it = self.calc_absolute_intensity(element, line)
+                        if np.isnan(it) or np.isinf(it):
+                            if self.verbose:
+                                print(f"Skipping {element} {line}: Invalid intensity {it}")
+                            continue
+                        
+                        # Create energy values for this range
+                        x_values = np.linspace(
+                            binstart * self.energy_factor,
+                            binend * self.energy_factor,
+                            binend - binstart
+                        )
+                        
+                        # Calculate Gaussian
+                        gauss = self.gaussian(x_values, energy_mean, self.std_dev[element])
+                        
+                        # Normalize Gaussian
+                        if len(gauss) > 0:
+                            gauss = gauss / np.sum(gauss) if np.sum(gauss) > 0 else gauss
+                        
+                        # Add contribution to total intensity
+                        total_intensity[binstart:binend] += it * gauss
+                        
+                        if self.verbose:
+                            print(f"Added intensity contribution: {it:.2e}")
+                            print(f"Gaussian sum: {np.sum(gauss):.2e}")
+                        
+                    except Exception as e:
+                        if self.verbose:
+                            print(f"Error processing {element} {line}: {str(e)}")
+                        continue
+        
         return total_intensity
         # return total_intensity
     def plot_intensity(self, energies, intensities, title='Intensity Plot', x_label='Energy (KeV)', y_label='Intensity (a.u.)',filename="plots/phyFit/plot_"):
@@ -158,11 +191,14 @@ class ElementHandler:
             x_label (str): Label for the x-axis
             y_label (str): Label for the y-axis
         """
+        directory = os.path.dirname(filename)
+        if directory and not os.path.exists(directory):
+            os.makedirs(directory, exist_ok=True)
         
         plt.figure(figsize=(12, 6))
          # Create an array of x values corresponding to the bin centers
         bin_width = self.energy_factor*1000 / self.num_channels  # Calculate the width of each bin
-        x_values = np.linspace(bin_width / 2, self.energy_factor*1000 - bin_width / 2, 1024)  # Bin centers
+        x_values = np.linspace(bin_width / 2, self.energy_factor*1000 - bin_width / 2, 2048)  # Bin centers
 
         plt.plot(x_values, intensities, label='Calculated Intensity', color='blue')
         plt.title(title)
@@ -171,10 +207,11 @@ class ElementHandler:
         plt.grid(True)
         plt.legend()
         plt.savefig(filename+"test.png")
+        
 # Example usage:.
 if __name__ == "__main__":
     handler = ElementHandler(verbose=True)
     energies = np.linspace(0, 27, 2048)  # Example energy range
     folded = handler.calculate_folded_intensity(energies)
     print("Combined Intensity:", folded.shape)
-    handler.plot_intensity(np.arange(len(folded)),folded) 
+    handler.plot_intensity(energies,folded) 
