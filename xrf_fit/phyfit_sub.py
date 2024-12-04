@@ -1,8 +1,8 @@
 import numpy as np
 from scipy import optimize
 import matplotlib.pyplot as plt
-from element_model import ElementModel  # Import ElementModel
-from element_handler import ElementHandler
+from element_model_sub import ElementModel  # Import ElementModel
+from element_handler_sub import ElementHandler
 from astropy.io import fits  # Add this import at the top
 import pygad  # Add this import
 
@@ -26,7 +26,7 @@ class PhyOptimizer:
         # Determine energy conversion factor based on number of channels
         with fits.open(fits_path) as hdul:
             num_channels = len(hdul[1].data['COUNTS'])
-            self.kev_per_channel = 0.01385 if num_channels == 2048 else 0.0277
+            self.kev_per_channel = 0.0135 if num_channels == 2048 else 0.0277
             
         self.energies, self.counts = self.get_fits_data(fits_path)
         
@@ -45,27 +45,38 @@ class PhyOptimizer:
     def _setup_optimization_params(self):
         """Setup optimization parameters, bounds, and initial guess."""
         # Initialize bounds for concentrations
-        conc_bounds = [(0.0, 50.0)] * self.n_elements  # Adjust range as needed
+        conc_bounds = [(0.0, 100.0)] * self.n_elements
         
         # Initialize bounds for standard deviations
-        std_dev_bounds = [(0.01, 1)] * self.n_elements  # Adjust range as needed
+        std_dev_bounds = [(0.01, 1.0)] * self.n_elements
+        
+        # Count total number of lines across all elements
+        n_beta_params = sum(len(self.el_handler.element_models[element].lines) 
+                          for element in self.el_handler.elements)
+        beta_bounds = [(0.0, 10.0)] * n_beta_params
         
         # Scale factor bounds
-        scale_bounds = [(1e-7, 1e-4)]
+        scale_bounds = [(1e-7, 10)]
         
-        self.bounds = conc_bounds + std_dev_bounds + scale_bounds
+        self.bounds = conc_bounds + std_dev_bounds + beta_bounds + scale_bounds
         
         # Initial guess
         self.initial_guess = []
-        # Initial concentrations from element handler
+        # Initial concentrations with 20% random variation
         for element in self.el_handler.elements:
-            self.initial_guess.append(self.el_handler.conc[element])
+            base_conc = self.el_handler.conc[element]
+            self.initial_guess.append(base_conc * (1 + 0.5 * (np.random.random() - 0.5)))
         
-        # Initial standard deviations
-        self.initial_guess.extend([0.1] * self.n_elements)
+        # Initial standard deviations with variation
+        self.initial_guess.extend([0.5 * (1 + 0.5 * (np.random.random() - 0.5)) 
+                                 for _ in range(self.n_elements)])
+        
+        # Initial betas with variation
+        self.initial_guess.extend([2.0 * (1 + 0.5 * (np.random.random() - 0.5)) 
+                                 for _ in range(n_beta_params)])
         
         # Initial scale
-        self.initial_guess.append(1e-6)
+        self.initial_guess.append(1e-5 * (1 + 0.5 * (np.random.random() - 0.5)))
 
     def init_ga(self):
         """Initialize genetic algorithm parameters."""
@@ -80,6 +91,9 @@ class PhyOptimizer:
         # Sigma ranges
         for _ in range(self.n_elements):
             self.gene_space.append({'low': 0.01, 'high': 1.0})
+        # Beta ranges
+        for _ in range(n_beta_params):
+            self.gene_space.append({'low': 0.0, 'high': 2.0})
         # Scale factor range
         self.gene_space.append({'low': 1e-7, 'high': 1e-4})
         
@@ -119,19 +133,61 @@ class PhyOptimizer:
     def objective_function(self, params):
         """Custom objective function for optimization."""
         try:
-            # Update concentrations in element handler first
+            # Update concentrations and standard deviations
             for i, element in enumerate(self.el_handler.elements):
                 self.el_handler.conc[element] = max(0.0, min(50.0, params[i]))
                 self.el_handler.std_dev[element] = max(0.05, min(1.0, params[self.n_elements + i]))
             
-            # Calculate model intensity using element handler
+            # Update beta parameters
+            beta_start_idx = 2 * self.n_elements
+            beta_idx = 0
+            for element in self.el_handler.elements:
+                for line in self.el_handler.element_models[element].lines:
+                    beta_value = max(0.0, min(2.0, params[beta_start_idx + beta_idx]))
+                    self.el_handler.set_beta(element, line, beta_value)
+                    beta_idx += 1
+            
+            # Calculate model intensity
             model_intensity = self.el_handler.calculate_folded_intensity(self.energies)
-            model_intensity *= max(1e-7, min(1e-4, params[-1]))  # Constrain scale factor
+            model_intensity *= params[-1]  # Scale factor
             
-            # Calculate error using vectorized operation
-            error = np.sum((self.counts - model_intensity)**2)
+            # Calculate residuals with extra weight on peaks
+            residuals = np.zeros_like(self.counts)
+            peak_weights = np.ones_like(self.counts)
             
-            # Print less frequently (only every 100th iteration)
+            for element in self.el_handler.elements:
+                for line_group in self.el_handler.element_models[element].line_div.values():
+                    for line in line_group:
+                        energy_mean = self.el_handler.element_models[element].energy_dict[line[:2]]["mean"]
+                        std_dev = self.el_handler.std_dev[element]
+                        
+                        # Calculate bin range around peak
+                        binstart = int((energy_mean - 3*std_dev) / self.kev_per_channel)
+                        binend = int((energy_mean + 3*std_dev) / self.kev_per_channel)
+                        
+                        # Ensure bins are within valid range
+                        binstart = max(0, binstart)
+                        binend = min(len(self.counts), binend)
+                        
+                        # Add higher weights around peaks using Gaussian profile
+                        peak_center = int(energy_mean / self.kev_per_channel)
+                        x = np.arange(binstart, binend)
+                        peak_weights[binstart:binend] += 5.0 * np.exp(-0.5 * ((x - peak_center)/(std_dev/self.kev_per_channel))**2)
+                        
+                        # Calculate weighted residuals for this range
+                        residuals[binstart:binend] = np.abs(self.counts[binstart:binend] - model_intensity[binstart:binend])
+            
+            # Apply peak weights to residuals
+            weighted_residuals = residuals * peak_weights
+            
+            # Add penalty for peak height mismatches
+            peak_penalty = 10.0 * np.sum((np.maximum(self.counts - model_intensity, 0))**2)
+            
+            error = np.sum(weighted_residuals**2) + peak_penalty
+            
+            print("Error:", error)
+            print(np.max(self.counts), np.max(model_intensity))
+            
             if hasattr(self, '_iter_count'):
                 self._iter_count += 1
             else:
@@ -141,14 +197,13 @@ class PhyOptimizer:
                 print(f"Iteration {self._iter_count}, Error: {error:.3f}")
             
             return error
-        
         except Exception as e:
             print(f"Error in objective function: {e}")
-            return 1e10  # Return large error for invalid parameter combinations
+            return 1e10
 
     def calculate_model_intensity(self, params):
         """Calculate model intensity for given parameters."""
-        # Update concentrations and std_devs in element handler
+        # Update concentrations, std_devs, and offsets in element handler
         for i, element in enumerate(self.el_handler.elements):
             self.el_handler.conc[element] = np.clip(params[i], 0.0, 50.0)
             self.el_handler.std_dev[element] = np.clip(params[self.n_elements + i], 0.01, 1.0)
@@ -163,7 +218,7 @@ class PhyOptimizer:
     def calculate_residuals(self, params):
         """Calculate residuals for optimization."""
         model = self.calculate_model_intensity(params)
-        return self.counts - model
+        return np.abs(self.counts - model)
 
     def run_optimization(self):
         """Run optimization with specified method."""
@@ -198,17 +253,43 @@ class PhyOptimizer:
         return result.x, result.fun if hasattr(result, 'fun') else None
 
     def plot_result(self, model_name=""):
-        """Plot the optimized fit result."""
+        """Plot the optimized fit result with individual element contributions."""
         fig, ax = plt.subplots(figsize=(10, 6))
+        
+        # Plot data
+        ax.plot(self.energies, self.counts, 'k-', label='Data', linewidth=2)
+        
+        # Calculate and plot total model
         model_intensity = self.calculate_model_intensity(self.result.x)
-        print(np.max(self.counts),np.max(model_intensity))
-        ax.plot(self.energies, self.counts, 'b-', label='Data')
-        ax.plot(self.energies, model_intensity, 'r-', label='Model Fit')
+        ax.plot(self.energies, model_intensity, 'r-', label='Total Fit', linewidth=2)
+        
+        # Plot individual element contributions
+        scale = np.clip(self.result.x[-1], 1e-7, 1e-4)
+        colors = plt.cm.rainbow(np.linspace(0, 1, len(self.el_handler.elements)))
+        
+        for i, element in enumerate(self.el_handler.elements):
+            # Temporarily set all concentrations to 0 except current element
+            original_conc = self.el_handler.conc.copy()
+            self.el_handler.conc = {el: 0.0 for el in self.el_handler.elements}
+            self.el_handler.conc[element] = original_conc[element]
+            
+            # Calculate individual element intensity
+            element_intensity = self.el_handler.calculate_folded_intensity(self.energies) * scale
+            ax.plot(self.energies, element_intensity, '-', color=colors[i], 
+                   label=f'{element}', alpha=0.6)
+            
+            # Restore original concentrations
+            self.el_handler.conc = original_conc
+        
         ax.set_xlabel('Energy (keV)')
         ax.set_ylabel('Counts')
         ax.set_title(f'Fit Result: {model_name}')
-        ax.legend()
-        plt.savefig(f'phyFit_result_{model_name}.png')
+        # ax.set_yscale('log')
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.grid(True, which='both', linestyle='--', alpha=0.3)
+        
+        plt.tight_layout()
+        plt.savefig(f'phyFit_result_{model_name}.png', bbox_inches='tight')
         plt.close()
         return fig
 
@@ -278,7 +359,7 @@ if __name__ == "__main__":
     el_handler = ElementHandler(num_channels=2048,verbose=False)
     
     ca_al_list = pd.read_csv("high_confidence_ca_al.csv")
-    fits_path =  ca_al_list.iloc[0]["filename"]  # Replace with your default path
+    fits_path =  ca_al_list.iloc[5]["filename"]  # Replace with your default path
     
     # Optional: Still allow command-line override
     try:

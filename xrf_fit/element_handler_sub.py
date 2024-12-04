@@ -1,5 +1,5 @@
 import numpy as np
-from element_model import ElementModel
+from element_model_sub import ElementModel
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import os
@@ -13,12 +13,11 @@ class ElementHandler:
             std_dev (float): Standard deviation for Gaussian peaks
             concentrations (dict): Dictionary of concentrations for each element
             verbose (bool): Flag to enable verbose output
-            num_channels (int): Number of energy channels
+            num_channels (int): Number of channels
         """
         self.verbose = verbose
         self.elements = ["Fe", "Al", "Mg", "Si", "Ca", "Ti", "O"]
-        # self.elements = ["Al", "Mg", "Si"]
-
+        
         self.conc = {
             "Fe": 0.3,
             "Al": 0.6,
@@ -37,48 +36,54 @@ class ElementHandler:
             "Ti": std_dev,
             "O": std_dev
         }
-        self.beta = 1.0
-        self.scale=0.001
+        
+        # Initialize element_models without offsets
+        self.element_models = {}
+        for element in self.elements:
+            self.element_models[element] = ElementModel(
+                element=element,
+                conc=self.conc[element],
+                std_dev=self.std_dev[element]
+            )
+        
+        # Initialize beta parameters after element_models
+        self.beta = {}
+        for element in self.elements:
+            for line in self.element_models[element].lines:
+                self.beta[f"{element}_{line}"] = 1.0
+        
+        self.scale = 0.001
         self.num_channels = num_channels
         self.energy_factor = 0.0135 if num_channels == 2048 else 0.0277
-        # Initialize ElementModel for each element
-        self.element_models = {
-            element: ElementModel(element, self.conc[element], self.std_dev[element]) 
-            for element in self.elements
-        }
-    def set_beta(self, el1, v1, el2, v2):
+    def set_beta(self, element, line, value):
         """
-        Set the beta (secondary fluorescence) parameters for a pair of elements.
+        Set the beta parameter for a specific element-line combination.
         
         Args:
-            el1 (str): First element symbol
-            v1 (float): Beta value for el1 -> el2 interaction
-            el2 (str): Second element symbol
-            v2 (float): Beta value for el2 -> el1 interaction
+            element (str): Element symbol
+            line (str): Spectral line
+            value (float): Beta value for the element-line combination
         """
-        if el1 not in self.elements or el2 not in self.elements:
-            raise ValueError(f"Elements must be from the list: {self.elements}")
+        if element not in self.elements:
+            raise ValueError(f"Element must be from the list: {self.elements}")
         
-        self.beta[f"{el1}_{el2}"] = v1
-        self.beta[f"{el2}_{el1}"] = v2
+        self.beta[f"{element}_{line}"] = value
         
         if self.verbose:
-            print(f"Set beta {el1}->{el2} = {v1}, {el2}->{el1} = {v2}")
+            print(f"Set beta {element}_{line} = {value}")
 
-    def get_beta(self):
+    def get_beta(self, element, line):
         """
-        Get the beta parameter for the interaction between two elements.
-        Now returns a single beta value regardless of element pair.
+        Get the beta parameter for a specific element-line combination.
         
         Args:
-            el1 (str): First element symbol
-            el2 (str): Second element symbol
+            element (str): Element symbol
+            line (str): Spectral line
             
         Returns:
-            float: Beta value for the interaction
+            float: Beta value for the element-line combination
         """
-        # Return the single beta value stored for all interactions
-        return self.beta
+        return self.beta.get(f"{element}_{line}", 0.0)
 
     def set_conc(self, element, conc):
         """
@@ -96,7 +101,7 @@ class ElementHandler:
         
     def calculate_secondary_intensity(self, ex, pline):
         """
-        Calculate secondary fluorescence intensity with beta parameters.
+        Calculate secondary fluorescence intensity with element-line specific beta parameters.
         
         Args:
             ex (str): Excited element
@@ -113,13 +118,12 @@ class ElementHandler:
                 iy = self.element_models[ey].calculate_mass_absorption_coefficient(ey, line=line)
                 ux_line = self.element_models[ex].calculate_mass_absorption_coefficient(ey, line)
                 kx = self.element_models[ex].calulate_elemental_const(pline, self.element_models[ey].energy_dict[line[:2]][line])
-                
-                # Use beta parameter for secondary fluorescence
-                beta = self.get_beta()
+
+                beta = self.get_beta(ey, line)
                 si += iy * ux_line * kx * beta
                 
                 if self.verbose and iy * ux_line * kx != 0:
-                    print(f"Secondary fluorescence: {ey}->{ex}, beta={beta:.3f}, contribution={iy*ux_line*kx*beta:.3e}")
+                    print(f"Secondary fluorescence: {ey}_{line}, beta={beta:.3f}, contribution={iy*ux_line*kx*beta:.3e}")
         
         return si
     
