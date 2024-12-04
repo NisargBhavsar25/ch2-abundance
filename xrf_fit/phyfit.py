@@ -118,49 +118,52 @@ class PhyOptimizer:
 
     def objective_function(self, params):
         """Custom objective function for optimization."""
-        # Update concentrations in element handler
-        for i, element in enumerate(self.el_handler.elements):
-            self.el_handler.conc[element] = params[i]
-            self.el_handler.std_dev[element] = params[self.n_elements + i]
+        try:
+            # Update concentrations in element handler first
+            for i, element in enumerate(self.el_handler.elements):
+                self.el_handler.conc[element] = max(0.0, min(50.0, params[i]))
+                self.el_handler.std_dev[element] = max(0.05, min(1.0, params[self.n_elements + i]))
+            
+            # Calculate model intensity using element handler
+            model_intensity = self.el_handler.calculate_folded_intensity(self.energies)
+            model_intensity *= max(1e-7, min(1e-4, params[-1]))  # Constrain scale factor
+            
+            # Calculate error using vectorized operation
+            error = np.sum((self.counts - model_intensity)**2)
+            
+            # Print less frequently (only every 100th iteration)
+            if hasattr(self, '_iter_count'):
+                self._iter_count += 1
+            else:
+                self._iter_count = 0
+            
+            if self._iter_count % 100 == 0:
+                print(f"Iteration {self._iter_count}, Error: {error:.3f}")
+            
+            return error
         
-        # Calculate model intensity using element handler
-        model_intensity = self.el_handler.calculate_folded_intensity(self.energies)
-        model_intensity *= params[-1]  # Scale factor
-        
-        # Calculate residuals only for valid bins
-        residuals = np.zeros_like(self.counts)
-        for element in self.el_handler.elements:
-            for line_group in self.el_handler.element_models[element].line_div.values():
-                for line in line_group:
-                    energy_mean = self.el_handler.element_models[element].energy_dict[line[:2]]["mean"]
-                    std_dev = self.el_handler.std_dev[element]
-                    
-                    # Calculate bin range
-                    binstart = int((energy_mean - std_dev) / self.kev_per_channel)
-                    binend = int((energy_mean + std_dev) / self.kev_per_channel)
-                    
-                    # Ensure bins are within valid range
-                    binstart = max(0, binstart)
-                    binend = min(len(self.counts), binend)
-                    
-                    # Calculate residuals for this range
-                    residuals[binstart:binend] = np.abs(self.counts[binstart:binend] - model_intensity[binstart:binend])
-        print("Error",np.sum(np.abs(residuals**4)))
-        print(np.max(self.counts),np.max(model_intensity))
-        return np.sum(np.abs(residuals**2))  # Return only non-zero residuals
+        except Exception as e:
+            print(f"Error in objective function: {e}")
+            return 1e10  # Return large error for invalid parameter combinations
 
     def calculate_model_intensity(self, params):
         """Calculate model intensity for given parameters."""
         # Update concentrations and std_devs in element handler
         for i, element in enumerate(self.el_handler.elements):
-            self.el_handler.conc[element] = params[i]
-            self.el_handler.std_dev[element] = params[self.n_elements + i]
+            self.el_handler.conc[element] = np.clip(params[i], 0.0, 50.0)
+            self.el_handler.std_dev[element] = np.clip(params[self.n_elements + i], 0.01, 1.0)
         
         # Calculate model intensity
         model_intensity = self.el_handler.calculate_folded_intensity(self.energies)
-        model_intensity *= params[-1]  # Scale factor
+        scale = np.clip(params[-1], 1e-7, 1e-4)
+        model_intensity *= scale
         
         return model_intensity
+
+    def calculate_residuals(self, params):
+        """Calculate residuals for optimization."""
+        model = self.calculate_model_intensity(params)
+        return self.counts - model
 
     def run_optimization(self):
         """Run optimization with specified method."""
@@ -170,27 +173,21 @@ class PhyOptimizer:
             fitness = self.ga_instance.best_solution()[1]
             self.result = type('Result', (), {'x': solution, 'fun': -fitness})
             return solution, -fitness
+        
         elif self.method == 'leastsq':
+            # Use least_squares solver with proper residuals
             result = optimize.least_squares(
-                self.objective_function,
+                self.calculate_residuals,
                 self.initial_guess,
                 bounds=tuple(zip(*self.bounds)),
                 method='trf',
                 loss='linear',
-                verbose=2,
-                ftol=1e-9,
-                xtol=1e-8
-            )
-        elif self.method == 'levenberg':
-            result = optimize.root(
-                self.objective_function,
-                self.initial_guess,
-                method='lm',
-                options={'maxiter': 500}
+                verbose=2
             )
         else:
+            # For other methods, use minimize with sum of squared residuals
             result = optimize.minimize(
-                self.objective_function,
+                lambda x: np.sum(self.calculate_residuals(x)**2),
                 self.initial_guess,
                 method=self.method,
                 bounds=self.bounds,
@@ -198,7 +195,6 @@ class PhyOptimizer:
             )
 
         self.result = result
-        print(result)
         return result.x, result.fun if hasattr(result, 'fun') else None
 
     def plot_result(self, model_name=""):
@@ -212,7 +208,8 @@ class PhyOptimizer:
         ax.set_ylabel('Counts')
         ax.set_title(f'Fit Result: {model_name}')
         ax.legend()
-        plt.show()
+        plt.savefig(f'phyFit_result_{model_name}.png')
+        plt.close()
         return fig
 
     def fit_from_files(self, fits_path, bkg_path=None, x_range=None, method='leastsq'):
@@ -272,33 +269,35 @@ class PhyOptimizer:
 # handler = DataHandler(bkg_path="path/to/background.fits")
 # optimizer = PhyOptimizer(handler, "path/to/fits.fits", "path/to/background.fits")
 # amplitudes, sigmas = optimizer.fit_from_files("path/to/fits.fits", "path/to/background.fits")
+import pandas as pd
+
+
 if __name__ == "__main__":
 
-    # Initialize ElementHandler
-    el_handler = ElementHandler(num_channels=1024)
+
+    el_handler = ElementHandler(num_channels=2048,verbose=False)
+    
+    ca_al_list = pd.read_csv("high_confidence_ca_al.csv")
+    fits_path =  ca_al_list.iloc[1]["filename"]  # Replace with your default path
+    
+    # Optional: Still allow command-line override
+    try:
+        import argparse
+        parser = argparse.ArgumentParser(description="Process fits file path.")
+        parser.add_argument("fits_path", type=str, help="Path to the FITS file", nargs='?', default=fits_path)
+        args = parser.parse_args()
+        fits_path = args.fits_path
+    except:
+        pass
 
     # Initialize optimizer
-    import argparse
-    parser = argparse.ArgumentParser(description="Process fits file path.")
-    parser.add_argument("fits_path", type=str, help="Path to the FITS file")
-    args = parser.parse_args()
-    optimizer = PhyOptimizer(el_handler, args.fits_path,method="leastsq")
+    optimizer = PhyOptimizer(el_handler, fits_path, method="leastsq")
 
     # Run optimization
     solution, residual = optimizer.run_optimization()
-    print("Residual",residual)
-    print("Solution",solution)
-    # calc_intensities = optimizer.calculate_model_intensity(solution)
-    # el_handler.plot_intensity(energies=optimizer.energies,intensities=calc_intensities)
+    print("Residual:", residual)
+    
     # Plot results
     optimizer.plot_result("Physical Model Fit")
-
-    # Extract fitted parameters
-    concentrations = solution[:len(el_handler.elements)]
-    std_devs = solution[len(el_handler.elements):-1]
-    scale = solution[-1]
-
-    # Print results
-    for element, conc, std in zip(el_handler.elements, concentrations, std_devs):
-        print(f"{element}: Concentration = {conc:.3f}, Std Dev = {std:.3f}")
-    print(f"Scale factor: {scale:.7f}")
+    
+    # Print detailed results

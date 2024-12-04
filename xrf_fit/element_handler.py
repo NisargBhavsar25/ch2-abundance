@@ -2,6 +2,7 @@ import numpy as np
 from element_model import ElementModel
 from scipy.stats import norm
 import matplotlib.pyplot as plt
+import os
 
 class ElementHandler:
     def __init__(self, std_dev=0.1, concentrations=None, verbose=False, num_channels=2048):
@@ -16,6 +17,8 @@ class ElementHandler:
         """
         self.verbose = verbose
         self.elements = ["Fe", "Al", "Mg", "Si", "Ca", "Ti", "O"]
+        # self.elements = ["Al", "Mg", "Si"]
+
         self.conc = {
             "Fe": 0.3,
             "Al": 0.6,
@@ -34,22 +37,49 @@ class ElementHandler:
             "Ti": std_dev,
             "O": std_dev
         }
-        self.beta={}
-        self.scale=0.01
+        self.beta = 1.0
+        self.scale=0.001
         self.num_channels = num_channels
-        self.energy_factor = 0.01385 if num_channels == 2048 else 0.0277
-        for el1 in self.elements:
-            for el2 in self.elements:
-                self.beta[f"{el1}_{el2}"]=1
-                self.beta[f"{el2}_{el1}"]=1
+        self.energy_factor = 0.0135 if num_channels == 2048 else 0.0277
         # Initialize ElementModel for each element
         self.element_models = {
             element: ElementModel(element, self.conc[element], self.std_dev[element]) 
             for element in self.elements
         }
-    def set_beta(self,el1,v1,el2,v2):
-            self.beta[f"{el1}_{el2}"]=v1
-            self.beta[f"{el2}_{el1}"]=v2
+    def set_beta(self, el1, v1, el2, v2):
+        """
+        Set the beta (secondary fluorescence) parameters for a pair of elements.
+        
+        Args:
+            el1 (str): First element symbol
+            v1 (float): Beta value for el1 -> el2 interaction
+            el2 (str): Second element symbol
+            v2 (float): Beta value for el2 -> el1 interaction
+        """
+        if el1 not in self.elements or el2 not in self.elements:
+            raise ValueError(f"Elements must be from the list: {self.elements}")
+        
+        self.beta[f"{el1}_{el2}"] = v1
+        self.beta[f"{el2}_{el1}"] = v2
+        
+        if self.verbose:
+            print(f"Set beta {el1}->{el2} = {v1}, {el2}->{el1} = {v2}")
+
+    def get_beta(self):
+        """
+        Get the beta parameter for the interaction between two elements.
+        Now returns a single beta value regardless of element pair.
+        
+        Args:
+            el1 (str): First element symbol
+            el2 (str): Second element symbol
+            
+        Returns:
+            float: Beta value for the interaction
+        """
+        # Return the single beta value stored for all interactions
+        return self.beta
+
     def set_conc(self, element, conc):
         """
         Set the amplitude for a specific element.
@@ -64,18 +94,33 @@ class ElementHandler:
             raise ValueError(f"Element {element} not in model list")
         
         
-    def calculate_secondary_intensity(self,ex,pline):
-        si=0
+    def calculate_secondary_intensity(self, ex, pline):
+        """
+        Calculate secondary fluorescence intensity with beta parameters.
+        
+        Args:
+            ex (str): Excited element
+            pline (str): Spectral line
+            
+        Returns:
+            float: Secondary intensity
+        """
+        si = 0
         for ey in self.elements:
-            if ey==ex:
+            if ey == ex:
                 continue
             for line in self.element_models[ey].lines:
-                iy=self.element_models[ey].calculate_mass_absorption_coefficient(ey,line=line)
-                ux_line=self.element_models[ex].calculate_mass_absorption_coefficient(ey,line)
-                kx=self.element_models[ex].calulate_elemental_const(pline,self.element_models[ey].energy_dict[line[:2]][line])
-                si+=iy*ux_line*kx*self.beta[f"{ey}_{ex}"]
-            if iy*ux_line*kx !=0 and self.verbose:
-                print("element",ex,ey,iy*ux_line*kx)
+                iy = self.element_models[ey].calculate_mass_absorption_coefficient(ey, line=line)
+                ux_line = self.element_models[ex].calculate_mass_absorption_coefficient(ey, line)
+                kx = self.element_models[ex].calulate_elemental_const(pline, self.element_models[ey].energy_dict[line[:2]][line])
+                
+                # Use beta parameter for secondary fluorescence
+                beta = self.get_beta()
+                si += iy * ux_line * kx * beta
+                
+                if self.verbose and iy * ux_line * kx != 0:
+                    print(f"Secondary fluorescence: {ey}->{ex}, beta={beta:.3f}, contribution={iy*ux_line*kx*beta:.3e}")
+        
         return si
     
     
@@ -116,10 +161,18 @@ class ElementHandler:
         """
         total_intensity = np.zeros_like(energies)
         for element in self.elements:
-            # print(element,"...",self.element_models[element].lines)
+            if self.verbose:
+                print(f"\nProcessing element: {element}")
+                print(f"Line groups: {self.element_models[element].line_div}")
+            
             for line_group in self.element_models[element].line_div.values():
                 for line in line_group:
-            #         # # Define the number of bins based on the standard deviation
+                    if self.verbose:
+                        print(f"  Processing line: {line}")
+                        print(f"  Energy mean: {self.element_models[element].energy_dict[line[:2]]['mean']}")
+                        print(f"  Intensity: {self.calc_absolute_intensity(element, line)}")
+                    
+                    # Define the number of bins based on the standard deviation
                     num_bins = int(2 * self.std_dev[element] / self.energy_factor) + 1 
                     energy_mean=self.element_models[element].energy_dict[line[:2]]["mean"]
                     se = self.energy_factor * int((energy_mean - self.std_dev[element]) / self.energy_factor)
@@ -129,11 +182,11 @@ class ElementHandler:
                                             te, 
                                             num_bins)
                     fulle=np.zeros(2048)
-                    binstart = int((energy_mean - self.std_dev[element]) / self.energy_factor)
-                    binend = int((energy_mean + self.std_dev[element]) / self.energy_factor)
+                    binstart = max(0,int((energy_mean - self.std_dev[element]) / self.energy_factor))
+                    binend = min(2048,int((energy_mean + self.std_dev[element]) / self.energy_factor))
                     it=self.calc_absolute_intensity(element,line)
                     # print(element,": ",line,": ",it,energies.shape)
-                    
+                    # print(binstart,binend,"Bins")
                     gauss=self.gaussian(energies,energy_mean,self.std_dev[element])
                     
                     # Ensure gauss has the same shape as the bins we want to fill
@@ -146,37 +199,36 @@ class ElementHandler:
                     
                     total_intensity[binstart:binend]+=it*gauss
             
-        # print(total_intensity)
         return total_intensity
-        # return total_intensity
-    def plot_intensity(self, energies, intensities, title='Intensity Plot', x_label='Energy (KeV)', y_label='Intensity (a.u.)',filename="plots/phyFit/plot_"):
+    
+    def plot_intensity(self, energies, intensities, title='Intensity Plot', x_label='Energy (KeV)', y_label='Intensity (a.u.)', filename="plots/phyFit/plot_"):
         """
         Plot the calculated intensity against energy values.
-        
-        Args:
-            energies (np.array): Energy values for the spectrum
-            intensities (np.array): Intensity values to plot
-            title (str): Title of the plot
-            x_label (str): Label for the x-axis
-            y_label (str): Label for the y-axis
         """
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         
         plt.figure(figsize=(12, 6))
-         # Create an array of x values corresponding to the bin centers
-        bin_width = self.energy_factor*1000 / self.num_channels  # Calculate the width of each bin
-        x_values = np.linspace(bin_width / 2, self.energy_factor*1000 - bin_width / 2, 1024)  # Bin centers
+        # Create an array of x values corresponding to the bin centers
+        bin_width = self.energy_factor * 1000 / self.num_channels  # Calculate the width of each bin
+        x_values = np.linspace(bin_width / 2, self.energy_factor * 1000 - bin_width / 2, self.num_channels)
 
         plt.plot(x_values, intensities, label='Calculated Intensity', color='blue')
         plt.title(title)
         plt.xlabel(x_label)
         plt.ylabel(y_label)
+        
+        # Set x-axis ticks at every integer value
+        max_energy = int(np.max(x_values))
+        plt.xticks(np.arange(0, max_energy + 1, 1))
+        
         plt.grid(True)
         plt.legend()
-        plt.savefig(filename+"test.png")
+        plt.savefig(filename + "test.png")
+        plt.close()
 
 if __name__ == "__main__":
     handler = ElementHandler(verbose=True)
     energies = np.linspace(0, 27, 2048)  # Example energy range
     folded = handler.calculate_folded_intensity(energies)
     print("Combined Intensity:", folded.shape)
-    handler.plot_intensity(np.arange(len(folded)),folded) 
+    handler.plot_intensity(np.arange(len(folded)), folded, filename="plots/phyFit/folded_intensity_")
