@@ -246,9 +246,9 @@ class ScipyOptimizer:
         plt.tight_layout()
         
         # Save plot with full path
-        plot_path = os.path.join(save_dir, os.path.basename(self.fits_path).replace('.fits', f'_{model_name}.png'))
-        fig.savefig(plot_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
-        logging.info(f"Plot saved to: {plot_path}")
+        # plot_path = os.path.join(save_dir, os.path.basename(self.fits_path).replace('.fits', f'_{model_name}.png'))
+        # fig.savefig(plot_path, dpi=300, bbox_inches='tight', facecolor='white', edgecolor='none')
+        # logging.info(f"Plot saved to: {plot_path}")
         
         return fig, ax
 
@@ -322,55 +322,67 @@ def test_optimization(fits_path, method='leastsq', x_range=(0, 27)):
 if __name__ == "__main__":
     # Suppress scipy optimization messages
     # logging.getLogger('scipy').setLevel(logging.ERROR)
-    
-    results_data = {
-        'filename': [],
-        'total_error': [],
-        'Fe_amplitude': [],
-        'Fe_sigma': [],
-        'Al_amplitude': [],
-        'Al_sigma': [],
-        'Mg_amplitude': [],
-        'Mg_sigma': [],
-        'Si_amplitude': [],
-        'Si_sigma': [],
-        'Ca_amplitude': [],
-        'Ca_sigma': [],
-        'Ti_amplitude': [],
-        'Ti_sigma': [],
-        'O_amplitude': [],
-        'O_sigma': [],
-        'scale': []
-    }
-    
+    import multiprocessing as mp
+    from functools import partial
+    import os
+    from tqdm import tqdm
+
+    def process_file(fits_file):
+        """Process a single fits file and return results dictionary"""
+        try:
+            results = {}
+            
+            optimizer = test_optimization(fits_file, method='leastsq', x_range=(0, 7))
+            solution, fitness = optimizer.run_optimization()
+            
+            # Calculate total error
+            total_error = optimizer.calculate_total_error(solution)
+            
+            # Store results
+            results['filename'] = fits_file
+            results['total_error'] = total_error
+            
+            # Process each element
+            for idx, element in enumerate(['Fe', 'Al', 'Mg', 'Si', 'Ca', 'Ti', 'O']):
+                results[f'{element}_amplitude'] = max(solution[idx], 0)
+                results[f'{element}_sigma'] = solution[idx + 7]
+                
+            results['scale'] = solution[-1]
+            return results
+        except Exception as e:
+            print(f"Error processing {fits_file}: {str(e)}")
+            return None
+
+    # Read the full list of files
     ca_al_list = pd.read_csv('/home/ubuntu/ch2-abundance/utils/ca-al-detection/high_confidence_ca_al.csv')
+    all_files = ca_al_list['filename'].tolist()
     
-    for i in tqdm(range(10), desc="Processing files", position=0, leave=True):
-        fits_file = ca_al_list['filename'][i]
-        
-        optimizer = test_optimization(fits_file, method='leastsq', x_range=(0, 7))
-        solution, fitness = optimizer.run_optimization()
-        
-        # Calculate total error
-        total_error = optimizer.calculate_total_error(solution)
-        
-        # Append results to lists
-        results_data['filename'].append(fits_file)
-        results_data['total_error'].append(total_error)
-        
-        # Process each element
-        for idx, element in enumerate(['Fe', 'Al', 'Mg', 'Si', 'Ca', 'Ti', 'O']):
-            results_data[f'{element}_amplitude'].append(max(solution[idx], 0))
-            results_data[f'{element}_sigma'].append(solution[idx + 7])
-        
-        results_data['scale'].append(solution[-1])
+    output_path = '/home/ubuntu/ch2-abundance/xrf_fit/gaussian-fit/optimization_results.csv'
     
-    # Create DataFrame and save
-    results_df = pd.DataFrame(results_data)
-    timestamp = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
-    results_df.to_csv(f'optimization_results_{timestamp}.csv', index=False)
+    # Initialize progress bar for total files
+    pbar = tqdm(total=len(all_files), desc="Processing files")
+    
+    def update_progress(*a):
+        """Callback function to update progress bar"""
+        pbar.update()
 
-
+    # Process files using multiprocessing
+    with mp.Pool(processes=mp.cpu_count()) as pool:
+        # Map process_file to all files with progress tracking
+        results = []
+        for i, result in enumerate(pool.imap_unordered(process_file, all_files)):
+            if result is not None:
+                results.append(result)
+                # Save intermediate results periodically (every 100 files)
+                if len(results) % 3000 == 0:
+                    pd.DataFrame(results).to_csv(f"{output_path}_{i}", index=False)
+            update_progress()
+    
+    # Save final results
+    final_df = pd.DataFrame(results)
+    final_df.to_csv(output_path, index=False)
+    
+    pbar.close()
 
     # # Plot first 10 files from the high confidence list
     # ca_al_list = pd.read_csv('/home/ubuntu/ch2-abundance/utils/ca-al-detection/high_confidence_ca_al.csv')
