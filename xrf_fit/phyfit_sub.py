@@ -7,6 +7,11 @@ from astropy.io import fits  # Add this import at the top
 import pygad  # Add this import
 import os
 from data_handler_nobkg import DataHandler
+import argparse  # Add this import at the top
+import pandas as pd
+import multiprocessing as mp
+from functools import partial
+from tqdm import tqdm
 
 class PhyOptimizer:
     def __init__(self, el_handler, fits_path, bkg_path=None, x_range=None, method='ga'):
@@ -390,18 +395,19 @@ class PhyOptimizer:
 # handler = DataHandler(bkg_path="path/to/background.fits")
 # optimizer = PhyOptimizer(handler, "path/to/fits.fits", "path/to/background.fits")
 # amplitudes, sigmas = optimizer.fit_from_files("path/to/fits.fits", "path/to/background.fits")
-import pandas as pd
-import multiprocessing as mp
-from functools import partial
-from tqdm import tqdm
 
 if __name__ == "__main__":
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description='Process XRF data files')
+    parser.add_argument('--input-csv', type=str, required=True,
+                       help='Path to the CSV file containing list of files to process')
+    args = parser.parse_args()
 
     # Initialize element handler
     el_handler = ElementHandler(num_channels=2048, verbose=False)
     
-    # Read list of files to process
-    ca_al_list = pd.read_csv("high_confidence_ca_al.csv")
+    # Read list of files to process using the provided path
+    ca_al_list = pd.read_csv(args.input_csv)
     
     # Create phyfit-csv directory if it doesn't exist
     os.makedirs("phyfit-csv", exist_ok=True)
