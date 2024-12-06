@@ -190,7 +190,7 @@ class XRFSpectrumAnalyzer:
         try:
             popt, pcov = curve_fit(self.gaussian, x_fit, y_fit, p0=p0)
             perr = np.sqrt(np.diag(pcov))
-            uncertanity = perr[1]
+            uncertanity = (perr[0]/popt[0] + perr[2]/popt[2]) * popt[0]
             # if sigma is too large, return 0 as amplitude
             if popt[2] > 0.15:
                 return (0, line_energy, fit_window/5, uncertanity)
@@ -232,6 +232,7 @@ class XRFSpectrumAnalyzer:
         sample_counts = clean_signal(sample_counts)
         if use_background:
             background_counts = self.load_spectrum(background_file)
+            background_counts = clean_signal(background_counts)
         
             # Subtract background
             net_counts = self.subtract_background(
