@@ -16,62 +16,38 @@ class ElementModel:
         self.conc = conc
         self.std_dev = std_dev
         self.Z = xraylib.SymbolToAtomicNumber(element)  # Atomic number
-
-        # Convert element symbol to atomic number if needed
-        self.Z = element if isinstance(element, int) else xraylib.SymbolToAtomicNumber(element)
         
         # Get K and L emission lines energies and probabilities
         energy_dict = {}
         radrate = {}
         
-        lines=[]
-        # K lines
-        self.lines_map={}
+        lines = []
+        self.lines_map = {}
         ka_lines = [
             (xraylib.KA1_LINE, "ka1"),
-            # (xraylib.KA2_LINE, "ka2"),
         ]
-        kb_lines= [(xraylib.KB1_LINE, "kb1"),
-            # (xraylib.KB2_LINE, "kb2")
-            ]
+        kb_lines = [(xraylib.KB1_LINE, "kb1")]
+        
         # Add K lines to means and radrate
-        peak_energies={}
-        peak_rad_rates={}
+        peak_energies = {}
+        peak_rad_rates = {}
         for line, label in ka_lines:
             try:
                 energy = xraylib.LineEnergy(self.Z, line)
                 prob = xraylib.RadRate(self.Z, line)
                 if energy > 0 and prob > 0:
-                    self.lines_map[label]=line        
+                    self.lines_map[label] = line        
                     peak_energies[f"{label}"] = energy
                     peak_rad_rates[f"{label}"] = prob
                     lines.append(label)
-
             except:
                 continue
-        energy_dict["ka"]=peak_energies
-        radrate["ka"]=peak_rad_rates
-        peak_energies={}
-        peak_rad_rates={}
-        for line, label in kb_lines:
-            try:
-                energy = xraylib.LineEnergy(self.Z, line)
-                prob = xraylib.RadRate(self.Z, line)
-             
-                if energy > 0 and prob > 0:
-                    self.lines_map[label]=line        
-                    peak_energies[f"{label}"] = energy
-                    peak_rad_rates[f"{label}"] = prob
-                    lines.append(label)
-
-            except:
-                continue
-        energy_dict["kb"]=peak_energies
-        radrate["kb"]=peak_rad_rates
+        
+        energy_dict["ka"] = peak_energies
+        radrate["ka"] = peak_rad_rates
         
         # L lines (you can add more if needed)
- # Add L lines to means and radrate
-         # L lines
+        # L lines
         la_lines = [
             # (xraylib.LA1_LINE, "la1"),
         ]
@@ -86,7 +62,7 @@ class ElementModel:
                 energy = xraylib.LineEnergy(self.Z, line)
                 prob = xraylib.RadRate(self.Z, line)
                 if energy > 0 and prob > 0:
-                    self.lines_map[label]=line 
+                    self.lines_map[label] = line 
        
                     peak_energies_la[label] = energy
                     peak_rad_rates_la[label] = prob
@@ -104,7 +80,7 @@ class ElementModel:
                 energy = xraylib.LineEnergy(self.Z, line)
                 prob = xraylib.RadRate(self.Z, line)
                 if energy > 0 and prob > 0:
-                    self.lines_map[label]=line        
+                    self.lines_map[label] = line        
                     peak_energies_lb[label] = energy
                     peak_rad_rates_lb[label] = prob
                     lines.append(label)
@@ -113,28 +89,35 @@ class ElementModel:
         
         energy_dict["lb"] = peak_energies_lb
         radrate["lb"] = peak_rad_rates_lb
-        means={}
-        for key,levels in energy_dict.items():
-            means[key]=np.mean(list(levels.values()))
+        means = {}
+        for key, levels in energy_dict.items():
+            means[key] = np.mean(list(levels.values()))
         
         for key in energy_dict.keys():
-            energy_dict[key]["mean"]=means[key]
+            energy_dict[key]["mean"] = means[key]
 
-        for key,levels in radrate.items():
-            means[key]=np.mean(list(levels.values()))
+        for key, levels in radrate.items():
+            means[key] = np.mean(list(levels.values()))
         
         for key in radrate.keys():
-            radrate[key]["mean"]=means[key]
+            radrate[key]["mean"] = means[key]
 
         self.energy_dict = energy_dict
-        self.radrates=radrate
-        self.lines=lines
-        self.line_div={}
+        
+        self.radrates = radrate
+        self.lines = lines
+        self.line_div = {}
+        # line_div={
+        #     "ka":["ka1","ka2"],
+        #     "kb":["kb1","kb2"],
+        #     "la":["la1"],
+        #     "lb":["lb1"]
+        # }
         for line in lines:
             if line not in self.line_div.keys():
-                self.line_div[line[:2]]=[]
+                self.line_div[line[:2]] = []
             self.line_div[line[:2]].append(line)
-        self.std_dev={line[:2]:0.01 for line in self.energy_dict.keys()}
+        self.std_dev = {line[:2]: 0.01 for line in self.energy_dict.keys()}
         # self.std_devs = np.array(std_dev * len(energy_dict))
         # self.radrate = np.array(list(radrate.values()))
 
@@ -150,7 +133,7 @@ class ElementModel:
         """
         return xraylib.CS_Total(self.Z, energy)  # Total cross-section as a proxy
     
-    def calculate_mass_absorption_coefficient(self, element,line):
+    def calculate_mass_absorption_coefficient(self, element, line):
         """
         Calculate the mass absorption coefficient for the element at the given energy.
         
@@ -163,36 +146,36 @@ class ElementModel:
         Z = xraylib.SymbolToAtomicNumber(element)  # Atomic number
         if line not in self.lines:
             return 0
-        line_num=self.lines_map[line]
+        line_num = self.lines_map[line]
         # energy= xraylib.LineEnergy(Z,line_num )
-        energy=self.energy_dict[line[:2]][line]
+        energy = self.energy_dict[line[:2]][line]
         return xraylib.CS_Total(self.Z, energy)  # Total cross-section as a proxy
-    def calulate_elemental_const(self,line,ey):
+    def calulate_elemental_const(self, line, ey):
         if "ka" in line:
-            ltype="ka"
-            line_energy=self.energy_dict["ka"]["mean"]
+            ltype = "ka"
+            line_energy = self.energy_dict["ka"]["mean"]
             rk = xraylib.JumpFactor(self.Z, 0)  # Get jump ratio for the specific line
         if "kb" in line:
-            ltype="kb"
-            line_energy=self.energy_dict["kb"]["mean"]
-            rk = xraylib.JumpFactor(self.Z,0)  # Get jump ratio for the specific line
+            ltype = "kb"
+            line_energy = self.energy_dict["kb"]["mean"]
+            rk = xraylib.JumpFactor(self.Z, 0)  # Get jump ratio for the specific line
         if "la" in line:
-            ltype="la"
-            line_energy=self.energy_dict["la"]["mean"]
-            rk = xraylib.JumpFactor(self.Z,1)  # Get jump ratio for the specific line
+            ltype = "la"
+            line_energy = self.energy_dict["la"]["mean"]
+            rk = xraylib.JumpFactor(self.Z, 1)  # Get jump ratio for the specific line
         if "lb" in line:
-            ltype="lb"
-            line_energy=self.energy_dict["lb"]["mean"]
-            rk = xraylib.JumpFactor(self.Z,1)  # Get jump ratio for the specific line
+            ltype = "lb"
+            line_energy = self.energy_dict["lb"]["mean"]
+            rk = xraylib.JumpFactor(self.Z, 1)  # Get jump ratio for the specific line
         try:
-            fluor_yield=xraylib.FluorYield(self.Z,0 if "k" in line else 1)
+            fluor_yield = xraylib.FluorYield(self.Z, 0 if "k" in line else 1)
         except Exception as e:
-            print(e,self.element,line_energy,"KeV")
+            print(e, self.element, line_energy, "KeV")
             return 0
-        c= (1-1/(rk+1e-9))*fluor_yield*self.radrates[ltype]["mean"]
+        c = (1 - 1 / (rk + 1e-9)) * fluor_yield * self.radrates[ltype]["mean"]
         return c
 
-    def gaussian(self, x,mean,std_dev):
+    def gaussian(self, x, mean, std_dev):
         """
         Calculate the Gaussian function value at the specified energy.
         
@@ -202,7 +185,7 @@ class ElementModel:
         Returns:
             float: The Gaussian value at the specified energy.
         """
-        if std_dev==0:
+        if std_dev == 0:
             return 0
         return self.conc * norm.pdf(x, mean, std_dev)
     def primary_intensity(self, line):
@@ -215,7 +198,7 @@ class ElementModel:
         Returns:
             float: The weighted Gaussian value at the specified energy.
         """
-        energy_mean=self.energy_dict[line[:2]]["mean"]
+        energy_mean = self.energy_dict[line[:2]]["mean"]
         mass_absorption_coeff = self.calculate_mass_absorption_coefficient(energy_mean)
         # # Define the number of bins based on the standard deviation
         # num_bins = int(2 * self.std_dev[line] / 0.0277) + 1
@@ -228,7 +211,7 @@ class ElementModel:
         # binend = int((energies[-1] - 0) / 0.0277)    # Assuming 0 is the starting energy
         
         # fulle[binstart:binend]=self.gaussian(energies, self.energy_dict[line[:2]]["mean"],std_dev=self.std_dev[line[:2]]) * mass_absorption_coeff
-        return mass_absorption_coeff*self.conc
+        return mass_absorption_coeff * self.conc
     def jump_ratio_factor(self, shell):
         """
         Calculate the jump ratio rk for the given energy using xraylib.
@@ -239,10 +222,10 @@ class ElementModel:
         Returns:
             float: The jump ratio rk at the specified energy.
         """
-        rk=xraylib.JumpFactor(self.Z, shell)  # Assuming JumpFactor returns rk
+        rk = xraylib.JumpFactor(self.Z, shell)  # Assuming JumpFactor returns rk
         if rk == 0:
             raise ValueError("rk must not be zero to avoid division by zero.")
-        return 1- 1 / rk
+        return 1 - 1 / rk
         
 # Example usage:
 if __name__ == "__main__":
