@@ -5,7 +5,7 @@ from typing import Dict
 import os
 import sys
 
-sys.path.append('E:\ISRO\ch2-abundance\\')
+# sys.path.append('E:\ISRO\ch2-abundance\\')
 
 # from scripts.fp_solver.claisse_quintin import XRFConcentrationSolver
 from scripts.fp_solver.claisse_quintin import XRFConcentrationSolver
