@@ -5,7 +5,7 @@ class XRFConcentrationSolver:
     def __init__(self):
         """Initialize the XRF concentration solver with predefined elements and coefficients"""
         # Define elements in the same order as the table
-        self.elements = ['Na', 'Mg', 'Al', 'Si', 'P', 'S', 'K', 'Ca', 'Ti', 'Cr', 'Mn', 'Fe']
+        self.elements = ['O', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'K', 'Ca', 'Ti', 'Cr', 'Mn', 'Fe']
         self.n_elements = len(self.elements)
         
         # Create element index mapping for easy lookup
@@ -22,7 +22,7 @@ class XRFConcentrationSolver:
         self.aij = np.zeros((n, n))
         # Fill in known values from first row of table
         self.aij[self.element_indices['Fe']] = [
-            -0.5588, -0.4261, -0.2820, -0.1143, 0.0741, 0.2772, 
+            0.0000, -0.5588, -0.4261, -0.2820, -0.1143, 0.0741, 0.2772, 
             0.9789, 1.2330, 1.8293, 2.5307, -0.1026, 0.0000
         ]
         
@@ -30,7 +30,7 @@ class XRFConcentrationSolver:
         self.aijj = np.zeros((n, n))
         # Fill in known values from second row of table
         self.aijj[self.element_indices['Fe']] = [
-            -0.0361, -0.0497, -0.0642, -0.0804, -0.0979, -0.1155,
+            0.0000, -0.0361, -0.0497, -0.0642, -0.0804, -0.0979, -0.1155,
             -0.1687, -0.1852, -0.2196, -0.2515, 0.0000, 0.0000
         ]
         
@@ -40,6 +40,17 @@ class XRFConcentrationSolver:
         # Fill in the known aijk values from the table
         # Note: these are the values from the table for element interactions
         aijk_data = {
+            ('O', 'Na'): 0.0000,
+            ('O', 'Mg'): 0.0000,
+            ('O', 'Al'): 0.0000,
+            ('O', 'Si'): 0.0000,
+            ('O', 'P'): 0.0000,
+            ('O', 'S'): 0.0000,
+            ('O', 'K'): 0.0000,
+            ('O', 'Ca'): 0.0000,
+            ('O', 'Ti'): 0.0000,
+            ('O', 'Cr'): 0.0000,
+            ('O', 'Mn'): 0.0000,
             ('Na', 'Mg'): 0.0005,
             ('Na', 'Al'): 0.0018,
             ('Na', 'Si'): 0.0038,
@@ -178,7 +189,7 @@ if __name__ == "__main__":
     
     # Example intensities (these should be replaced with real measurements)
     test_intensities = {
-        'Na': 0.1, 'Mg': 0.2, 'Al': 0.3, 'Si': 0.4,
+        'O': 0.0, 'Na': 0.1, 'Mg': 0.2, 'Al': 0.3, 'Si': 0.4,
         'P': 0.1, 'S': 0.1, 'K': 0.2, 'Ca': 0.3,
         'Ti': 0.2, 'Cr': 0.1, 'Mn': 0.1, 'Fe': 0.4
     }

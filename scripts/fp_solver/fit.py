@@ -10,6 +10,7 @@ import sys
 # from scripts.fp_solver.claisse_quintin import XRFConcentrationSolver
 from scripts.fp_solver.claisse_quintin import XRFConcentrationSolver
 from scripts.fp_solver.intensity_finder import XRFSpectrumAnalyzer
+from scripts.fp_solver.preprocessing import clean_signal
 
 class XRFAnalyzer:
     def __init__(self):

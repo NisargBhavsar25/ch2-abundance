@@ -4,6 +4,7 @@ from scipy.optimize import curve_fit
 from typing import Dict, List, Tuple, Optional
 import matplotlib.pyplot as plt
 import os
+from scripts.fp_solver.preprocessing import clean_signal
 
 class XRFSpectrumAnalyzer:
     def __init__(self):
@@ -17,18 +18,19 @@ class XRFSpectrumAnalyzer:
         
         # Dictionary of characteristic XRF line energies (in keV)
         self.characteristic_lines = {
-            'Na': {'Kα': 1.041},
-            'Mg': {'Kα': 1.254},
-            'Al': {'Kα': 1.487},
-            'Si': {'Kα': 1.740},
-            'P':  {'Kα': 2.014},
-            'S':  {'Kα': 2.308},
-            'K':  {'Kα': 3.314},
-            'Ca': {'Kα': 3.692},
-            'Ti': {'Kα': 4.511, 'Kβ': 4.932},
-            'Cr': {'Kα': 5.415, 'Kβ': 5.947},
-            'Mn': {'Kα': 5.899, 'Kβ': 6.490},
-            'Fe': {'Kα': 6.404, 'Kβ': 7.058}
+            'O':  {'Ka': 0.525},
+            'Na': {'Ka': 1.041},
+            'Mg': {'Ka': 1.254},
+            'Al': {'Ka': 1.487},
+            'Si': {'Ka': 1.740},
+            'P':  {'Ka': 2.014},
+            'S':  {'Ka': 2.308},
+            'K':  {'Ka': 3.314},
+            'Ca': {'Ka': 3.692},
+            'Ti': {'Ka': 4.511, 'Kb': 4.932},
+            'Cr': {'Ka': 5.415, 'Kb': 5.947},
+            'Mn': {'Ka': 5.899, 'Kb': 6.490},
+            'Fe': {'Ka': 6.404, 'Kb': 7.058}
         }
 
     def load_fits_spectrum(self, fits_file: str) -> np.ndarray:
@@ -227,6 +229,7 @@ class XRFSpectrumAnalyzer:
             sample_counts = y_file
         else:
             sample_counts = self.load_spectrum(sample_file)
+        sample_counts = clean_signal(sample_counts)
         if use_background:
             background_counts = self.load_spectrum(background_file)
         
