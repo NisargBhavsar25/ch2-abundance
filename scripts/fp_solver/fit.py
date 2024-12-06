@@ -49,6 +49,9 @@ class XRFAnalyzer:
             y_file=y_file,
             verbose=verbose
         )
+        for key in intensities.keys():
+            if intensities[key] < 0 or np.isnan(intensities[key]) or np.isinf(intensities[key]):
+                intensities[key] = 0
         if verbose == 1:
             print("\nCalculated intensities:")
             for element, intensity in intensities.items():
