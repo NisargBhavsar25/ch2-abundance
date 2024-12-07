@@ -245,7 +245,7 @@ class XMIMSIMProcessor:
 def main():
     parser = argparse.ArgumentParser(description='Process CSV data through XMIMSIM')
     parser.add_argument('csv_file', help='Input CSV file')
-    parser.add_argument('excitation_file', nargs='?', default='ch2_xsm_20221003_l1_vvapec.txt', help='Excitation data file')
+    parser.add_argument('excitation_file', help='Excitation data file')
     args = parser.parse_args()
 
     generator = XMIMSIMGenerator(args.csv_file, args.excitation_file)
@@ -257,3 +257,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# usage: bash - python subprocess_cli.py <csvfile> <excitation file>
