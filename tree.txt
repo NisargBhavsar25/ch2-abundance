@@ -2,7 +2,6 @@
 ├── README.md
 ├── main.py
 └── scripts
-    ├── __init__.py
     ├── abundance
     │   ├── X2ABUND_FIT
     │   │   ├── background.py
@@ -34,7 +33,6 @@
     │   ├── earthmover
     │   │   ├── earthmover.py
     │   │   └── utils.py
-    │   ├── optimizer.py
     │   ├── pipeline
     │   │   ├── BKG
     │   │   ├── abundances_results_final.csv
@@ -54,7 +52,6 @@
     │   │   ├── merged_data.parquet
     │   │   ├── parallel.py
     │   │   ├── parallelSpec.py
-    │   └── x2abund.py
     ├── ball_tree
     │   ├── ball_tree.pkl
     │   └── clustering.py
@@ -113,14 +110,7 @@
     ├── mineral_groups
     │   └── mineral.py
     ├── monte_carlo
-    │   ├── ele_abund_lpgrs.py
-    │   ├── images
-    │   ├── lpgrs_elemental_maps
-    │   │   ├── Al_image.jpeg
-    │   │   └── O_grey_scale.jpeg
-    │   ├── subprocess_cli.py
-    │   ├── sumcounts.py
-    │   └── txt_xsmi.py
+    │   └── subprocess_cli.py
     ├── solar
     │   ├── merged_data.parquet
     │   ├── solar.pkl
