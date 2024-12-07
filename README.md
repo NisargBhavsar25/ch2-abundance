@@ -1,16 +1,20 @@
 # ISRO : High-Resolution Elemental Mapping of Lunar Surface
-
 <!-- TABLE OF CONTENTS -->
-## Table of Contents
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
 
-- [ISRO : High-Resolution Elemental Mapping of Lunar Surface](#isro--high-resolution-elemental-mapping-of-lunar-surface)
-  - [Table of Contents](#table-of-contents)
-  - [About the project](#about-the-project)
-  - [Project Structure (change after complete cleaning)](#project-structure-change-after-complete-cleaning)
-  - [Installation](#installation)
-  - [Run](#run)
-  - [Explanation](#explanation)
-  - [Results](#results)
+<ol>
+    <li><a href="#about-the-project">About the project</a></li>
+    <li><a href="#project-structure-change-after-complete-cleaning">Project Structure (change after complete cleaning)</a></li>
+    <li><a href="#installation">Installation</a></li>
+    <li><a href="#run">Run</a></li>
+    <li><a href="#explanation">Explanation</a></li>
+    <li><a href="#results">Results</a></li>
+</ol>
+
+</details>
+
 
 <!-- TOC --><a name="about-the-project"></a>
 ## About the project
