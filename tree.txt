@@ -1,0 +1,184 @@
+.
+├── README.md
+├── main.py
+└── scripts
+    ├── __init__.py
+    ├── abundance
+    │   ├── X2ABUND_FIT
+    │   │   ├── background.py
+    │   │   ├── common_modules.py
+    │   │   ├── data_constants
+    │   │   ├── fit_larch.py
+    │   │   ├── fit_optuna.py
+    │   │   ├── get_constants_xrf_new_V2.py
+    │   │   ├── get_xrf_lines_V1.py
+    │   │   ├── get_xrf_lines_V2.py
+    │   │   ├── mergeFits.py
+    │   │   ├── parallel.py
+    │   │   ├── responsefiles.py
+    │   │   ├── scripts
+    │   │   │   ├── plot_fits.py
+    │   │   │   └── test_fits.py
+    │   │   ├── single_fit_optuna.py
+    │   │   ├── tempCodeRunnerFile.py
+    │   │   ├── tes.py
+    │   │   ├── test
+    │   │   │   ├── plots_x2abund_test.pdf
+    │   │   │   ├── test_fits.py
+    │   │   │   ├── test_x2abund.py
+    │   │   │   └── xcm_x2abund_test.xcm
+    │   │   ├── test.py
+    │   │   ├── tif.py
+    │   │   ├── xrf_comp_new_V2.py
+    │   │   └── xrf_comp_new_V3.py
+    │   ├── earthmover
+    │   │   ├── earthmover.py
+    │   │   └── utils.py
+    │   ├── optimizer.py
+    │   ├── pipeline
+    │   │   ├── BKG
+    │   │   ├── abundances_results_final.csv
+    │   │   ├── common_modules.py
+    │   │   ├── data_constants
+    │   │   │   ├── ffast
+    │   │   │   ├── form_factors
+    │   │   │   └── xcom
+    │   │   ├── define_xrf_localmodel.py
+    │   │   ├── fits_utils.py
+    │   │   ├── get_constants_xrf_new_V2.py
+    │   │   ├── get_xrf_lines_V1.py
+    │   │   ├── get_xrf_lines_V2.py
+    │   │   ├── gpufit.py
+    │   │   ├── jax_fit.py
+    │   │   ├── mergeFits.py
+    │   │   ├── merged_data.parquet
+    │   │   ├── parallel.py
+    │   │   ├── parallelSpec.py
+    │   └── x2abund.py
+    ├── ball_tree
+    │   ├── ball_tree.pkl
+    │   └── clustering.py
+    ├── fits_utils
+    │   ├── addPHAs.py
+    │   ├── conv.py
+    │   ├── group.py
+    │   ├── merge.py
+    │   ├── mergesimilar.py
+    │   └── phaviz.py
+    ├── flare_ops
+    │   ├── README.md
+    │   ├── flare_catalog
+    │   │   ├── classifier.py
+    │   │   ├── classifier_loop.py
+    │   │   ├── pipeline.py
+    │   │   └── pipeline.sh
+    │   ├── gen_files.py
+    │   ├── getFitsforXSM.py
+    │   ├── solar_model.py
+    │   ├── solar_model_1.py
+    │   ├── solar_test.py
+    │   ├── spec_arf
+    │   ├── spec_pha
+    │   └── spectrum
+    ├── fp_solver
+    │   ├── __init__.py
+    │   ├── claisse_quintin.py
+    │   ├── fit.py
+    │   ├── intensity_finder.py
+    │   ├── main.ipynb
+    │   └── preprocessing.py
+    ├── image-augmentation
+    │   └── Image Augmentation.py
+    ├── jaxspec
+    │   ├── common_modules.py
+    │   ├── customModels.py
+    │   ├── data_constants
+    │   │   ├── ffast
+    │   │   ├── form_factors
+    │   │   └── xcom
+    │   ├── define_xrf_localmodel.py
+    │   ├── get_constants_xrf_new_V2.py
+    │   ├── get_xrf_lines_V1.py
+    │   ├── parallel.py
+    │   ├── pyxtojax.py
+    │   ├── test
+    │   │   ├── plots_x2abund_test.pdf
+    │   │   ├── test_fits.py
+    │   │   ├── test_x2abund.py
+    │   │   └── xcm_x2abund_test.xcm
+    │   ├── test3.py
+    │   └── xrf_comp_new_V3.py
+    ├── map_making
+    │   └── gaussian_avg.py
+    ├── mineral_groups
+    │   └── mineral.py
+    ├── monte_carlo
+    │   ├── ele_abund_lpgrs.py
+    │   ├── images
+    │   ├── lpgrs_elemental_maps
+    │   │   ├── Al_image.jpeg
+    │   │   └── O_grey_scale.jpeg
+    │   ├── subprocess_cli.py
+    │   ├── sumcounts.py
+    │   └── txt_xsmi.py
+    ├── solar
+    │   ├── merged_data.parquet
+    │   ├── solar.pkl
+    │   └── solar_process.ipynb
+    ├── super-resolution
+    │   ├── UNet generalized Flexible.ipynb
+    │   ├── Unet
+    │   │   ├── dataset.py
+    │   │   ├── train.py
+    │   │   └── unet-inference.ipynb
+    │   ├── elemantal-map-enhancement.ipynb
+    │   └── outputs
+    ├── utils
+    │   ├── IIRS_find_overlaps.py
+    │   ├── catalog.py
+    │   ├── get-pip.py
+    │   ├── high_confidence_ca_al.csv
+    │   ├── improve_overlap.py
+    │   ├── knee_point.py
+    │   ├── lunar_map.py
+    │   ├── overlap.py
+    │   ├── ratio_to_mineral.py
+    │   └── util_utc2met.py
+    ├── validation
+    │   ├── Elevation_Mapping
+    │   │   ├── Elevation_Mapping.py
+    │   │   └── Elevation_Mapping_TIFF.py
+    │   ├── LPGRS
+    │   │   ├── add_header.py
+    │   │   ├── images
+    │   │   ├── search_for_lat_lon.py
+    │   │   └── tab_to_csv.py
+    │   ├── TIF
+    │   │   ├── TIF_DATA
+    │   │   └── tiff.py
+    │   └── iirs
+    │       ├── extract_lat_lon.py
+    │       └── plot_iirs.py
+    ├── xrf_fit
+    │   ├── GAfit.py
+    │   ├── GAfit_plain.py
+    │   ├── data_handler.py
+    │   ├── data_handler_nobkg.py
+    │   ├── element_handler_sub.py
+    │   ├── element_model_sub.py
+    │   ├── gauss.py
+    │   ├── high_confidence_ca_al.csv
+    │   ├── optimizer.py
+    │   ├── phy.py
+    │   ├── phyfit_sub.py
+    │   ├── scipy_fit.py
+    │   ├── scipy_fit_nobkg copy.py
+    │   ├── scipy_fit_nobkg.py
+    │   └── spectral_optimizer.py
+    └── xsm
+        ├── extract_spectra
+        │   └── solar_test.py
+        ├── xsm_plots
+        └── xsm_scripts
+            ├── classifyFlarewise.py
+            └── findNearest.py
