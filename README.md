@@ -3,12 +3,14 @@
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
 
-1. [About The Project](#about-the-project)
-2. [Project Structure](#project-structure)
-3. [Installation](#installation)
-4. [Run](#run)
-5. [Explanation](#explanation)
-6. [Results](#results)
+- [ISRO : High-Resolution Elemental Mapping of Lunar Surface](#isro--high-resolution-elemental-mapping-of-lunar-surface)
+  - [Table of Contents](#table-of-contents)
+  - [About the project](#about-the-project)
+  - [Project Structure (change after complete cleaning)](#project-structure-change-after-complete-cleaning)
+  - [Installation](#installation)
+  - [Run](#run)
+  - [Explanation](#explanation)
+  - [Results](#results)
 
 <!-- TOC --><a name="about-the-project"></a>
 ## About the project
@@ -287,22 +289,22 @@ Processes X-ray spectrometer data with calibration, background correction, and r
 ## Results
 
 - Al/Si Map
-![Al/Si Map](result_maps\Al_inferno.png)
+![Al/Si Map](result_maps/Al_inferno.png)
 
 - Ca/Si Map
-![Al/Si Map](result_maps\Ca_inferno.png)
+![Al/Si Map](result_maps/Ca_inferno.png)
 
 - Cr/Si Map
-![Al/Si Map](result_maps\Cr_inferno.png)
+![Al/Si Map](result_maps/Cr_inferno.png)
 
 - Fe/Si Map
-![Al/Si Map](result_maps\Fe_inferno.png)
+![Al/Si Map](result_maps/Fe_inferno.png)
 
 - Mg/Si Map
-![Al/Si Map](result_maps\Mg_inferno.png)
+![Al/Si Map](result_maps/Mg_inferno.png)
 
 - Mn/Si Map
-![Al/Si Map](result_maps\Mn_inferno.png)
+![Al/Si Map](result_maps/Mn_inferno.png)
 
 - Ti/Si Map
-![Al/Si Map](result_maps\Ti_inferno.png)
+![Al/Si Map](result_maps/Ti_inferno.png)
