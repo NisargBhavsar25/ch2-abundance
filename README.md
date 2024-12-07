@@ -8,6 +8,7 @@
 3. [Installation](#installation)
 4. [Run](#run)
 5. [Explanation](#explanation)
+6. [Results](#results)
 
 <!-- TOC --><a name="about-the-project"></a>
 ## About the project
@@ -15,7 +16,7 @@
 This project uses data from Chandrayaan-2’s CLASS instrument to make detailed maps of the Moon’s surface. These maps show the different elements present on the Moon. By studying the intensity of X-ray fluorescence (XRF) lines emitted by elements like magnesium, Silicon, and Aluminum, induced by solar flares, and calculating ratios such as Mg/Si and Al/Si, the project derives spatially resolved compositional information while mitigating the influence of varying solar flare conditions. A strong data processing pipeline extracts, models, and validates elemental abundances from spectral data, facilitating the creation of compositional maps with a spatial resolution of approximately 12 km. These maps, overlaid on lunar albedo data, illuminate compositional variations, providing valuable insights into mineral distribution and potential in-situ resource locations. This research contributes to lunar exploration efforts by deepening our geological understanding and aiding in future mission planning.
 
 <!-- TOC --><a name="project-structure"></a>
-## Project Structure
+## Project Structure (change after complete cleaning)
 ```
 .
 ├── README.md
@@ -202,66 +203,85 @@ This project uses data from Chandrayaan-2’s CLASS instrument to make detailed 
 
 <!-- TOC --><a name="installation"></a>
 ## Installation
-
+Before running the script, ensure all required dependencies are installed. Use the following command to install them:
 ```bash
 pip install -r requirements.txt
 ```
 
 <!-- TOC --><a name="run"></a>
 ## Run
+
+The `main.py` script is a command-line tool for performing X-ray Fluorescence (XRF) analysis. It processes two essential inputs: a sample spectrum file (`--sample_file`) and a background spectrum file (`--background_file`), both in FITS or PHA format. The script calculates element intensities, their uncertainties, concentrations, and concentration uncertainties based on the provided data.
+
+Users can enhance the analysis with optional arguments:
+
+`--plot`: Generates visual plots of the intensities and concentrations.   
+`--output <file_path>`: Saves the analysis results to a specified file.  
+
+Usage:  Run the script with the following command:
+
 ```bash
-python main.py
+python main.py --sample_file <path_to_sample_fits> --background_file <path_to_background_fits> [--plot] [--output <file_path>]
 ```
+
+The results are displayed in a formatted table in the console, and if specified, written to a file. Ensure the input files exist and provide valid data for successful execution.
 
 <!-- TOC --><a name="explanation"></a>
 ## Explanation
-A simple overview of the modules used in the project, present in ./scripts directory.
+
+**Overview of Project Modules in ./scripts**  
 
 **abundance/**  
-This directory encompasses a mineral abundance calculation pipeline with multiple analytical components. The implementation integrates Earth Mover's Distance calculations for distribution analysis, alongside robust chi-square minimization algorithms within X2ABUND_FIT. The framework incorporates comprehensive validation protocols to ensure calculation accuracy.
+Contains a pipeline for calculating mineral abundance, featuring Earth Mover's Distance for distribution analysis and chi-square minimization via X2ABUND_FIT. The pipeline includes robust validation procedures to ensure precise results.
 
 **ball_tree/**  
-Implements sophisticated clustering methodologies utilizing ball tree data structures, optimized for high-dimensional spectral data analysis. The implementation includes automated classification mechanisms and persistent model storage capabilities, ensuring efficient data organization and retrieval.
+Implements advanced clustering techniques using ball tree structures, optimized for high-dimensional spectral data. Includes automated classification and efficient model storage for streamlined data management.
 
 **fits_utils/**  
-Houses a comprehensive suite of tools designed for the manipulation and analysis of FITS (Flexible Image Transport System) files. The utilities facilitate PHA data integration, spectral file consolidation, and systematic file organization based on observational parameters, complemented by advanced visualization capabilities.
+Provides tools for managing and analyzing FITS files, supporting PHA data integration, spectral file consolidation, and organization based on observational parameters. Includes advanced visualization features for better insights.
 
 **flare_ops/**  
-Facilitates automated solar flare analysis through sophisticated detection algorithms. The implementation encompasses precise parameter calculations including peak flux determination, duration assessment, and energy quantification, with integrated classification and logging systems.
+Automates solar flare analysis with algorithms for detecting events, calculating peak flux, duration, and energy, and classifying results. Features integrated logging for seamless tracking.
 
 **fp_solver/**  
-Presents a mathematical framework implementing iterative fixed-point methodologies for spectral deconvolution. The system incorporates advanced optimization techniques to handle convergence challenges in complex spectral fitting scenarios.
+Offers a mathematical framework for iterative fixed-point methods in spectral deconvolution, with optimization techniques to address complex convergence issues.
 
 **image-augmentation/**  
-Delivers advanced image enhancement capabilities specifically tailored for spectral imagery. The implementation includes sophisticated noise reduction algorithms, contrast enhancement methodologies, and specialized preprocessing routines for X-ray imagery.
+Enhances spectral imagery through noise reduction, contrast adjustment, and preprocessing tailored for X-ray images, improving data quality for analysis.
 
-**jaxspec/**   
-Presents a high-performance spectral analysis framework leveraging JAX acceleration. The implementation facilitates parallel processing capabilities and GPU-optimized routines for efficient large-scale spectral data processing.
+**jaxspec/**  
+Leverages JAX acceleration to deliver a high-performance spectral analysis framework. Features parallel processing and GPU-optimized routines for large-scale spectral data.
 
 **map_making/**  
-Facilitates the creation of high-resolution elemental and mineral distribution maps from spectral data. Incorporates sophisticated interpolation algorithms and coordinate mapping systems for generating publication-grade visualizations.
+Generates high-resolution elemental and mineral distribution maps from spectral data. Incorporates interpolation and coordinate mapping for creating publication-ready visuals.
 
 **mineral_groups/**  
-Implements advanced spectral analysis algorithms for mineral classification. The system integrates comprehensive mineral libraries and sophisticated comparison protocols for accurate mineral identification.
+Specializes in mineral classification using spectral analysis. Integrates a comprehensive mineral library and advanced comparison protocols for reliable identification.
 
-**monte_carlo/**  
-Provides robust error estimation capabilities through Monte Carlo simulations. The implementation includes uncertainty quantification and error propagation analysis for abundance calculations. It includes a subprocess program to generate xmsi files and then also generate xmso files.
+**monte_carlo/**   
+Offers a subprocess_cli.py script that processes as
+```bash
+python subprocess_cli.py <path_to_csv> <path_to_excitatation.txt>
+```
+It generates xmsi files using the specified continuous excitation energies and weight ratios from the CSV, then executes Monte Carlo simulations to produce the corresponding xmso output files.
 
-**solar/**  
-Facilitates comprehensive solar X-ray data analysis, incorporating advanced algorithms for flare detection, background radiation assessment, and temporal spectral evolution analysis. The system provides specialized routines for processing solar observation time series.
+**solar/**   
+Processes solar X-ray data with algorithms for flare detection, background radiation analysis, and temporal spectral evolution. Tailored routines support solar observation time-series analysis.
 
 **super-resolution/**  
-Implements state-of-the-art deep learning models for spectral image enhancement. The framework incorporates multiple super-resolution algorithms specifically optimized for X-ray and spectral data characteristics.
+Applies cutting-edge deep learning models to enhance spectral images. Optimized super-resolution algorithms are designed for X-ray and spectral data applications.
 
 **utils/**  
-Provides essential analytical tools including advanced knee point detection algorithms, peak identification systems, and spectral smoothing functions. The implementation includes comprehensive mathematical operations and sophisticated file handling protocols for diverse data formats.
+Offers key analytical tools such as knee point detection, peak identification, and spectral smoothing. Includes versatile file handling and mathematical operations for diverse datasets.
 
 **validation/**  
-Implements rigorous quality assurance protocols, incorporating comprehensive model validation mechanisms and systematic result verification methodologies. The framework includes sophisticated benchmarking systems for evaluating abundance calculations and spectral fitting accuracy.
+Ensures quality through rigorous validation processes, benchmarking, and result verification. Assesses the accuracy of abundance calculations and spectral fitting.
 
 **xrf_fit/**  
-Delivers specialized X-ray fluorescence analysis capabilities, incorporating advanced peak deconvolution algorithms, background correction methodologies, and elemental identification systems. The implementation includes sophisticated calibration protocols for quantitative analysis.
+Focuses on X-ray fluorescence analysis, incorporating peak deconvolution, background correction, and elemental identification. Features advanced calibration for quantitative assessments.
 
 **xsm/**  
-Facilitates comprehensive X-ray spectrometer data processing through sophisticated calibration algorithms, background elimination protocols, and response matrix calculations. The system incorporates instrument-specific corrections and standardized data formatting procedures.
+Processes X-ray spectrometer data with calibration, background correction, and response matrix calculations. Includes instrument-specific adjustments and standardized data formatting.
 
+<!-- TOC --><a name="results"></a>
+## Results
