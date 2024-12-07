@@ -285,3 +285,24 @@ Processes X-ray spectrometer data with calibration, background correction, and r
 
 <!-- TOC --><a name="results"></a>
 ## Results
+
+- Al/Si Map
+![Al/Si Map](result_maps\Al_inferno.png)
+
+- Ca/Si Map
+![Al/Si Map](result_maps\Ca_inferno.png)
+
+- Cr/Si Map
+![Al/Si Map](result_maps\Cr_inferno.png)
+
+- Fe/Si Map
+![Al/Si Map](result_maps\Fe_inferno.png)
+
+- Mg/Si Map
+![Al/Si Map](result_maps\Mg_inferno.png)
+
+- Mn/Si Map
+![Al/Si Map](result_maps\Mn_inferno.png)
+
+- Ti/Si Map
+![Al/Si Map](result_maps\Ti_inferno.png)
